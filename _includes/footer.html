@@ -1,30 +1,35 @@
+<!-- start custom footer snippets-->
 
-<div style="text-align: center; font-size: 0.9rem; margin-top: 1rem;">
-  <span id="site-year-range"></span>
-  <a href="https://taylor7992.github.io" target="_blank" rel="noopener noreferrer">Taylor 的个人主页</a>
+<div style="text-align:center; font-size:14px; color:#777; margin-top:20px;">
+
+  <!-- Fast Follow GitHub -->
+  <p>
+    <a href="https://github.com/taylor7992" target="_blank" style="text-decoration:none; font-weight:bold;">
+      🚀 快速关注我的 GitHub 账号
+    </a>
+  </p>
+
+  <!-- Dynamic Year Range -->
+  <p id="site-year-range"></p>
+
 </div>
 
 <script>
-  // 固定开始日期
+  // 固定起始日
   const startDate = new Date("2025-12-10");
-
-  // 当前日期
   const today = new Date();
 
-  // 格式化函数：YYYY.MM.DD
-  function formatDate(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}.${m}.${day}`;
-  }
+  const startYear = startDate.getFullYear();
+  const todayYear = today.getFullYear();
 
-  const startText = formatDate(startDate);
-  const todayText = formatDate(today);
+  const formattedToday =
+    today.getFullYear() + '.' +
+    String(today.getMonth() + 1).padStart(2, '0') + '.' +
+    String(today.getDate()).padStart(2, '0');
 
-  // 设置内容
+  // 显示：2025.12.10 - 2025.12.11（自动更新）
   document.getElementById("site-year-range").innerText =
-    `${startText} - ${todayText} · `; // 最后留空格用于连接后面的链接
+    `${startDate.getFullYear()}.${String(startDate.getMonth()+1).padStart(2,'0')}.${String(startDate.getDate()).padStart(2,'0')} - ${formattedToday}`;
 </script>
 
 <!-- end custom footer snippets -->
