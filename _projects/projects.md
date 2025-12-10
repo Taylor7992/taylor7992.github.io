@@ -1,6 +1,6 @@
 ---
 layout: collection
-title: "我的项目"
+title: "ing"
 permalink: /projects/
 collection: projects
 entries_layout: grid
