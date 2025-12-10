@@ -1,4 +1,12 @@
-#背景颜色
+# Welcome to your site configuration!
+#
+# This config file contains settings that control the entire site.
+# If you change this file, please restart the server process.
+
+# Theme Settings
+#
+# Review documentation to determine if you should use `theme` or `remote_theme`
+
 minimal_mistakes_skin    : "aqua" # "air", "aqua", "contrast", "dark", "dirt", "neon", "mint", "plum", "sunrise"
 
 # Site Settings
@@ -20,6 +28,7 @@ words_per_minute         : 200
 enable_copy_code_button  :
 copyright                :
 copyright_url            :
+
 comments:
   provider               : "giscus"
   disqus:
@@ -48,22 +57,28 @@ comments:
   staticman:
     branch               :
     endpoint             :
+
 reCaptcha:
   siteKey                :
   secret                 :
+
 atom_feed:
   path                   :
   hide                   :
+
 search                   :
 search_full_content      :
 search_provider          :
+
 lunr:
   search_within_pages    :
+
 algolia:
   application_id         :
   index_name             :
   search_only_api_key    :
   powered_by             :
+
 google:
   search_engine_id       :
   instant_search         :
@@ -82,10 +97,11 @@ facebook:
   app_id                 :
   publisher              :
 og_image                 :
+
 social:
   type                   :
   name                   :
-  links:
+  links: []
 
 # Analytics
 analytics:
@@ -94,18 +110,24 @@ analytics:
     tracking_id          :
     anonymize_ip         :
 
-# Site Author  ← 已移除整段，不再包含作者信息
-
+# Removed original author information for privatization
+author: {}
 
 # Site Footer
 footer:
-  links: []   # 作者社交链接已全部移除，空列表保留结构
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/Taylor7992"
+    - label: "Facebook"
+      icon: "fab fa-fw fa-facebook-square"
   since: "2013"
 
 # Reading Files
 include:
   - .htaccess
   - _pages
+
 exclude:
   - "*.sublime-project"
   - "*.sublime-workspace"
@@ -125,7 +147,6 @@ exclude:
   - gulpfile.js
   - LICENSE
   - log
-  - minimal-mistakes-.gemspec
   - node_modules
   - package.json
   - package-lock.json
@@ -134,9 +155,11 @@ exclude:
   - tmp
   - /docs
   - /test
+
 keep_files:
   - .git
   - .svn
+
 encoding: "utf-8"
 markdown_ext: "markdown,mkdown,mkdn,mkd,md"
 
@@ -189,23 +212,24 @@ pagination:
 
 # Plugins
 plugins:
-  - paginate
-  - sitemap
-  - gist
-  - feed
-  - include-cache
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-gist
+  - jekyll-feed
+  - jekyll-include-cache
 
 whitelist:
-  - paginate
-  - sitemap
-  - gist
-  - feed
-  - include-cache
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-gist
+  - jekyll-feed
+  - jekyll-include-cache
 
 # Archives
 category_archive:
   type: liquid
   path: /categories/
+
 tag_archive:
   type: liquid
   path: /tags/
@@ -223,7 +247,9 @@ defaults:
       type: posts
     values:
       layout: single
+      author_profile: false
       read_time: true
       comments:
       share: true
       related: true
+
