@@ -1,11 +1,11 @@
 ---
 title: "GitHub 收藏"
-permalink: /stars/
+permalink: /star/
 layout: single
 classes: wide
 ---
 
-<div class="stars-grid">
+<div class="star-grid">
 
   <!-- 卡片 1 -->
   <div class="star-card">
@@ -26,12 +26,11 @@ classes: wide
 </div>
 
 <style>
-  .stars-grid {
+  .star-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 16px;
   }
-
   .star-card {
     background: #ffffff;
     padding: 16px;
@@ -39,11 +38,9 @@ classes: wide
     border: 1px solid #e5e5e5;
     transition: 0.2s;
   }
-
   .star-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
-
-  .star-
+</style>
 
