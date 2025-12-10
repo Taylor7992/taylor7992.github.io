@@ -218,6 +218,12 @@ plugins:
   - jekyll-feed
   - jekyll-include-cache
 
+collections:
+  projects:
+    output: true
+    permalink: /projects/:title/
+
+
 whitelist:
   - jekyll-paginate
   - jekyll-sitemap
