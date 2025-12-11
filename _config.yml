@@ -111,7 +111,15 @@ analytics:
     anonymize_ip         :
 
 # Removed original author information for privatization
-author: {}
+author:
+  name: "Taylor"
+  avatar: "/assets/images/avatar.jpg"
+  bio: "很高兴认识你，祝你生活愉快"
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/Taylor7992"
+
 
 # Site Footer
 footer:
