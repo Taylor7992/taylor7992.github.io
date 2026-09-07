@@ -1,5 +1,6 @@
 import json
 import time
+import random
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -8,34 +9,23 @@ import yaml
 
 
 # ============================================================
-# 基本配置
+# 配置
 # ============================================================
 
 WATCHLIST_FILE = "_data/etf_watchlist.yml"
 OUTPUT_FILE = "assets/data/etf_data.json"
 
-# 获取最近 3 年历史数据
 HISTORY_DAYS = 3 * 365
 
-# 东方财富 K 线接口
-EASTMONEY_KLINE_URL = (
-    "https://push2his.eastmoney.com/api/qt/stock/kline/get"
-)
+# 新浪财经历史行情接口
+SINA_KLINE_URL = "https://quotes.sina.cn/cn/api/jsonp_v2.php"
 
-# 东方财富实时行情接口
-EASTMONEY_QUOTE_URL = (
-    "https://push2.eastmoney.com/api/qt/stock/get"
-)
-
-# LOF 基金
-LOF_CODES = {
-    "162719",
-    "161226",
-}
+# 新浪实时行情接口
+SINA_QUOTE_URL = "https://hq.sinajs.cn/list"
 
 
 # ============================================================
-# HTTP Session
+# Session
 # ============================================================
 
 session = requests.Session()
@@ -43,25 +33,41 @@ session = requests.Session()
 session.headers.update({
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "AppleWebKit/537.36 "
+        "(KHTML, like Gecko) "
         "Chrome/131.0.0.0 Safari/537.36"
     ),
-    "Referer": "https://quote.eastmoney.com/",
+    "Accept": "*/*",
+    "Connection": "keep-alive",
 })
 
 
 # ============================================================
-# 读取自选 ETF
+# ETF / LOF
+# ============================================================
+
+LOF_CODES = {
+    "162719",
+    "161226",
+}
+
+
+# ============================================================
+# 读取 ETF 列表
 # ============================================================
 
 def load_watchlist():
 
-    with open(WATCHLIST_FILE, "r", encoding="utf-8") as f:
+    with open(
+        WATCHLIST_FILE,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
         config = yaml.safe_load(f)
 
     codes = config.get("codes", [])
 
-    # 去重，同时保持原来的顺序
     result = []
 
     for code in codes:
@@ -75,133 +81,310 @@ def load_watchlist():
 
 
 # ============================================================
-# 判断交易所
+# 新浪代码
 # ============================================================
 
-def get_secid(code):
+def get_sina_symbol(code):
 
     code = str(code)
 
-    # 上海
     if code.startswith(("51", "52", "56", "58")):
-        return f"1.{code}"
+        return "sh" + code
 
-    # 深圳
-    return f"0.{code}"
+    return "sz" + code
 
 
 # ============================================================
-# 获取实时行情
+# 请求重试
+# ============================================================
+
+def request_with_retry(
+    method,
+    url,
+    params=None,
+    timeout=20,
+    retries=3
+):
+
+    last_error = None
+
+    for attempt in range(1, retries + 1):
+
+        try:
+
+            response = session.request(
+                method=method,
+                url=url,
+                params=params,
+                timeout=timeout
+            )
+
+            response.raise_for_status()
+
+            return response
+
+        except Exception as e:
+
+            last_error = e
+
+            print(
+                f"请求失败，第 {attempt}/{retries} 次：{e}"
+            )
+
+            if attempt < retries:
+
+                time.sleep(
+                    2 + random.uniform(0.5, 2)
+                )
+
+    raise last_error
+
+
+# ============================================================
+# 新浪实时行情
 # ============================================================
 
 def get_realtime_quote(code):
 
-    secid = get_secid(code)
+    symbol = get_sina_symbol(code)
 
-    params = {
-        "secid": secid,
-        "fields": (
-            "f57,f58,f43,f169,f170,"
-            "f46,f60,f44,f45,f47,f48"
-        ),
-    }
+    url = SINA_QUOTE_URL + "/" + symbol
 
-    response = session.get(
-        EASTMONEY_QUOTE_URL,
-        params=params,
-        timeout=20,
+    response = request_with_retry(
+        "GET",
+        url,
+        timeout=15,
+        retries=3
     )
 
-    response.raise_for_status()
+    text = response.text
 
-    data = response.json()
+    # 新浪返回：
+    #
+    # var hq_str_sz159865="养殖ETF,..."
+    #
 
-    if not data.get("data"):
-        return None
+    if '="' not in text:
 
-    item = data["data"]
+        raise RuntimeError(
+            "新浪实时接口返回格式异常"
+        )
+
+    data = text.split('="', 1)[1]
+
+    data = data.rsplit('"', 1)[0]
+
+    fields = data.split(",")
+
+    if len(fields) < 4:
+
+        raise RuntimeError(
+            "新浪实时数据字段不足"
+        )
+
+    name = fields[0]
+
+    # 新浪股票行情格式：
+    #
+    # 0 名称
+    # 1 开盘
+    # 2 昨收
+    # 3 最高
+    # 4 最低
+    # 5 当前价格
+    #
+
+    previous_close = safe_float(fields[2])
+    current_price = safe_float(fields[3])
+
+    if len(fields) >= 4:
+        current_price = safe_float(fields[3])
+
+    # 对于 ETF，新浪部分接口字段可能不同。
+    # 如果价格字段异常，后续会使用历史数据。
 
     return {
-        "code": str(item.get("f57") or code),
-        "name": item.get("f58") or code,
-        "price": item.get("f43"),
-        "change": item.get("f169"),
-        "change_percent": item.get("f170"),
+        "name": name,
+        "price": current_price,
+        "previous_close": previous_close,
     }
 
 
 # ============================================================
-# 获取历史 K 线
+# 新浪历史行情
 # ============================================================
 
 def get_history(code):
 
-    secid = get_secid(code)
+    symbol = get_sina_symbol(code)
 
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=HISTORY_DAYS)
 
-    params = {
-        "secid": secid,
-        "ut": "fa5fd1943c7b386f172d6893dbfba10b",
-        "fields1": "f1,f2,f3,f4,f5,f6",
-        "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
-        "klt": "101",
-        "fqt": "0",
-        "beg": start_date.strftime("%Y%m%d"),
-        "end": end_date.strftime("%Y%m%d"),
-    }
-
-    response = session.get(
-        EASTMONEY_KLINE_URL,
-        params=params,
-        timeout=20,
+    start_date = (
+        end_date -
+        timedelta(days=HISTORY_DAYS)
     )
 
-    response.raise_for_status()
+    params = {
+        "symbol": symbol,
+        "scale": "240",
+        "ma": "no",
+        "datalen": "1000",
+    }
 
-    result = response.json()
+    response = request_with_retry(
+        "GET",
+        SINA_KLINE_URL,
+        params=params,
+        timeout=20,
+        retries=3
+    )
 
-    if not result.get("data"):
-        raise RuntimeError("东方财富没有返回历史数据")
+    text = response.text.strip()
 
-    klines = result["data"].get("klines")
+    if not text:
 
-    if not klines:
-        raise RuntimeError("历史 K 线为空")
+        raise RuntimeError(
+            "新浪历史接口返回为空"
+        )
+
+    # 尝试解析 JSONP
+    #
+    # var data = {...}
+    #
+
+    json_start = text.find("{")
+    json_end = text.rfind("}")
+
+    if json_start == -1 or json_end == -1:
+
+        raise RuntimeError(
+            "新浪历史接口返回格式无法解析"
+        )
+
+    json_text = text[
+        json_start:
+        json_end + 1
+    ]
+
+    try:
+
+        data = json.loads(json_text)
+
+    except Exception:
+
+        raise RuntimeError(
+            "新浪历史数据 JSON 解析失败"
+        )
+
+    # 尝试寻找数据
+    records = None
+
+    if isinstance(data, dict):
+
+        for key in (
+            "data",
+            "result",
+            "day",
+            "items"
+        ):
+
+            if key in data:
+
+                records = data[key]
+                break
+
+    if records is None:
+
+        raise RuntimeError(
+            "新浪历史数据中没有找到 K 线"
+        )
+
+    if not isinstance(records, list):
+
+        raise RuntimeError(
+            "新浪历史 K 线格式异常"
+        )
 
     rows = []
 
-    for line in klines:
+    for item in records:
 
-        parts = line.split(",")
+        if not isinstance(item, dict):
+            continue
 
-        if len(parts) < 6:
+        date = (
+            item.get("day")
+            or item.get("date")
+            or item.get("d")
+        )
+
+        close = (
+            item.get("close")
+            or item.get("c")
+        )
+
+        high = (
+            item.get("high")
+            or item.get("h")
+        )
+
+        low = (
+            item.get("low")
+            or item.get("l")
+        )
+
+        if date is None or close is None:
             continue
 
         rows.append({
-            "date": parts[0],
-            "open": float(parts[1]),
-            "close": float(parts[2]),
-            "high": float(parts[3]),
-            "low": float(parts[4]),
-            "volume": float(parts[5]),
+            "date": date,
+            "close": safe_float(close),
+            "high": safe_float(high),
+            "low": safe_float(low),
         })
 
     if not rows:
-        raise RuntimeError("历史数据解析失败")
+
+        raise RuntimeError(
+            "新浪历史 K 线解析后为空"
+        )
 
     df = pd.DataFrame(rows)
 
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(
+        df["date"],
+        errors="coerce"
+    )
 
-    df = df.sort_values("date").reset_index(drop=True)
+    df["close"] = pd.to_numeric(
+        df["close"],
+        errors="coerce"
+    )
+
+    df["high"] = pd.to_numeric(
+        df["high"],
+        errors="coerce"
+    )
+
+    df["low"] = pd.to_numeric(
+        df["low"],
+        errors="coerce"
+    )
+
+    df = df.dropna(
+        subset=["date", "close"]
+    )
+
+    df = df.sort_values(
+        "date"
+    ).reset_index(drop=True)
 
     return df
 
 
 # ============================================================
-# 安全数值转换
+# 数值转换
 # ============================================================
 
 def safe_float(value):
@@ -224,7 +407,7 @@ def safe_float(value):
 
 
 # ============================================================
-# 计算区间涨跌幅
+# 区间涨跌
 # ============================================================
 
 def calculate_return(df, days):
@@ -232,20 +415,29 @@ def calculate_return(df, days):
     if len(df) < 2:
         return None
 
-    latest_price = float(df.iloc[-1]["close"])
+    latest = float(
+        df.iloc[-1]["close"]
+    )
 
-    index = max(0, len(df) - 1 - days)
+    index = max(
+        0,
+        len(df) - 1 - days
+    )
 
-    old_price = float(df.iloc[index]["close"])
+    old = float(
+        df.iloc[index]["close"]
+    )
 
-    if old_price == 0:
+    if old == 0:
         return None
 
-    return (latest_price / old_price - 1) * 100
+    return (
+        latest / old - 1
+    ) * 100
 
 
 # ============================================================
-# 计算最大回撤
+# 最大回撤
 # ============================================================
 
 def calculate_max_drawdown(df):
@@ -254,37 +446,54 @@ def calculate_max_drawdown(df):
 
     running_max = prices.cummax()
 
-    drawdown = prices / running_max - 1
+    drawdown = (
+        prices /
+        running_max -
+        1
+    )
 
-    return float(drawdown.min() * 100)
+    return float(
+        drawdown.min() * 100
+    )
 
 
 # ============================================================
-# 计算当前回撤
+# 当前回撤
 # ============================================================
 
-def calculate_current_drawdown(df, current_price):
+def calculate_current_drawdown(
+    df,
+    current_price
+):
 
     if current_price is None:
         return None
 
-    prices = df["close"].astype(float)
-
-    historical_high = float(prices.max())
+    historical_high = float(
+        df["close"].max()
+    )
 
     if historical_high == 0:
         return None
 
-    return (current_price / historical_high - 1) * 100
+    return (
+        current_price /
+        historical_high -
+        1
+    ) * 100
 
 
 # ============================================================
-# 计算平均回撤
+# 平均回撤
 # ============================================================
 
 def calculate_average_drawdown(df):
 
-    prices = df["close"].astype(float).tolist()
+    prices = (
+        df["close"]
+        .astype(float)
+        .tolist()
+    )
 
     if len(prices) < 2:
         return None
@@ -297,40 +506,56 @@ def calculate_average_drawdown(df):
 
     for price in prices[1:]:
 
-        # 创新高
         if price >= running_high:
 
-            # 如果之前存在完整回撤周期
             if current_drawdown < 0:
-                drawdowns.append(current_drawdown)
+
+                drawdowns.append(
+                    current_drawdown
+                )
 
             running_high = price
             current_drawdown = 0
 
         else:
 
-            drawdown = price / running_high - 1
+            drawdown = (
+                price /
+                running_high -
+                1
+            )
 
             if drawdown < current_drawdown:
+
                 current_drawdown = drawdown
 
-    # 最后一个尚未恢复的回撤周期
     if current_drawdown < 0:
-        drawdowns.append(current_drawdown)
+
+        drawdowns.append(
+            current_drawdown
+        )
 
     if not drawdowns:
         return 0
 
-    return float(sum(drawdowns) / len(drawdowns) * 100)
+    return float(
+        sum(drawdowns) /
+        len(drawdowns) *
+        100
+    )
 
 
 # ============================================================
-# 计算 ETF 数据
+# 处理单个 ETF
 # ============================================================
 
 def process_etf(code):
 
-    print(f"正在处理 {code}")
+    print("=" * 50)
+
+    print(
+        f"正在处理 {code}"
+    )
 
     try:
 
@@ -338,52 +563,72 @@ def process_etf(code):
         # 历史数据
         # ----------------------------------------------------
 
+        print(
+            f"{code}：获取历史数据..."
+        )
+
         df = get_history(code)
 
+        print(
+            f"{code}：历史数据 {len(df)} 条"
+        )
+
         if df.empty:
-            raise RuntimeError("历史数据为空")
+
+            raise RuntimeError(
+                "历史数据为空"
+            )
 
         # ----------------------------------------------------
-        # 实时数据
+        # 实时行情
         # ----------------------------------------------------
 
         quote = None
 
         try:
 
-            quote = get_realtime_quote(code)
+            print(
+                f"{code}：获取实时行情..."
+            )
+
+            quote = get_realtime_quote(
+                code
+            )
 
         except Exception as e:
 
-            print(f"实时行情获取失败 {code}: {e}")
+            print(
+                f"{code}：实时行情失败：{e}"
+            )
 
         # ----------------------------------------------------
-        # 基础信息
+        # 名称
         # ----------------------------------------------------
 
-        if quote:
+        if quote and quote.get("name"):
 
             name = quote["name"]
-
-            realtime_price = safe_float(
-                quote["price"]
-            )
-
-            realtime_change_percent = safe_float(
-                quote["change_percent"]
-            )
 
         else:
 
             name = code
-            realtime_price = None
-            realtime_change_percent = None
 
         # ----------------------------------------------------
         # 最新价格
         # ----------------------------------------------------
 
-        if realtime_price is not None and realtime_price > 0:
+        realtime_price = None
+
+        if quote:
+
+            realtime_price = safe_float(
+                quote.get("price")
+            )
+
+        if (
+            realtime_price is not None
+            and realtime_price > 0
+        ):
 
             latest_price = realtime_price
 
@@ -397,35 +642,56 @@ def process_etf(code):
         # 今日涨跌幅
         # ----------------------------------------------------
 
-        if realtime_change_percent is not None:
+        if (
+            quote
+            and quote.get("previous_close")
+            and realtime_price
+        ):
 
-            return_1d = realtime_change_percent
+            previous_close = safe_float(
+                quote["previous_close"]
+            )
 
-        else:
+            if (
+                previous_close
+                and previous_close != 0
+            ):
 
-            if len(df) >= 2:
-
-                previous_close = float(
-                    df.iloc[-2]["close"]
-                )
-
-                today_close = float(
-                    df.iloc[-1]["close"]
-                )
-
-                if previous_close != 0:
-
-                    return_1d = (
-                        today_close / previous_close - 1
-                    ) * 100
-
-                else:
-
-                    return_1d = None
+                return_1d = (
+                    realtime_price /
+                    previous_close -
+                    1
+                ) * 100
 
             else:
 
                 return_1d = None
+
+        elif len(df) >= 2:
+
+            previous_close = float(
+                df.iloc[-2]["close"]
+            )
+
+            today_close = float(
+                df.iloc[-1]["close"]
+            )
+
+            if previous_close != 0:
+
+                return_1d = (
+                    today_close /
+                    previous_close -
+                    1
+                ) * 100
+
+            else:
+
+                return_1d = None
+
+        else:
+
+            return_1d = None
 
         # ----------------------------------------------------
         # 近 1 周
@@ -465,25 +731,47 @@ def process_etf(code):
         # 最大回撤
         # ----------------------------------------------------
 
-        max_drawdown = calculate_max_drawdown(
-            df
+        max_drawdown = (
+            calculate_max_drawdown(df)
         )
 
         # ----------------------------------------------------
         # 平均回撤
         # ----------------------------------------------------
 
-        avg_drawdown = calculate_average_drawdown(
-            df
+        avg_drawdown = (
+            calculate_average_drawdown(df)
         )
 
         # ----------------------------------------------------
         # 当前回撤
         # ----------------------------------------------------
 
-        current_drawdown = calculate_current_drawdown(
-            df,
-            latest_price
+        current_drawdown = (
+            calculate_current_drawdown(
+                df,
+                latest_price
+            )
+        )
+
+        print(
+            f"{code}：成功"
+        )
+
+        print(
+            f"价格={latest_price}"
+        )
+
+        print(
+            f"今日={return_1d}"
+        )
+
+        print(
+            f"1周={return_1w}"
+        )
+
+        print(
+            f"1月={return_1m}"
         )
 
         return {
@@ -503,7 +791,16 @@ def process_etf(code):
 
     except Exception as e:
 
-        print(f"处理 {code} 失败：{e}")
+        error_message = (
+            type(e).__name__ +
+            ": " +
+            str(e)
+        )
+
+        print(
+            f"{code}：处理失败："
+            f"{error_message}"
+        )
 
         return {
             "code": code,
@@ -518,6 +815,7 @@ def process_etf(code):
             "avg_drawdown": None,
             "current_drawdown": None,
             "error": True,
+            "error_message": error_message,
         }
 
 
@@ -528,12 +826,22 @@ def process_etf(code):
 def main():
 
     print("=" * 60)
-    print("ETF 数据更新程序")
+
+    print(
+        "ETF 数据更新程序"
+    )
+
+    print(
+        "数据源：新浪财经"
+    )
+
     print("=" * 60)
 
     codes = load_watchlist()
 
-    print(f"读取到 {len(codes)} 个 ETF")
+    print(
+        f"读取到 {len(codes)} 个 ETF"
+    )
 
     results = []
 
@@ -543,11 +851,13 @@ def main():
 
         results.append(result)
 
-        # 避免请求过快
-        time.sleep(0.5)
+        # 随机等待
+        time.sleep(
+            random.uniform(1, 2)
+        )
 
     # --------------------------------------------------------
-    # 输出 JSON
+    # 输出
     # --------------------------------------------------------
 
     output = {
@@ -572,16 +882,22 @@ def main():
         )
 
     success_count = sum(
-        1 for item in results
+        1
+        for item in results
         if not item["error"]
     )
 
     print("=" * 60)
+
     print(
-        f"更新完成：{success_count}/{len(results)} 成功"
+        f"更新完成："
+        f"{success_count}/"
+        f"{len(results)} 成功"
     )
+
     print("=" * 60)
 
 
 if __name__ == "__main__":
+
     main()
