@@ -1,11 +1,46 @@
 ---
-title: "主页"
-excerpt: "我是基于minimal-misakes这个模板进行的自己再加工，作为一个小白，完全不懂html，只是利用ai表达我的诉求进行一点一点的扣字眼完成的"
-header:
-  teaser: /assets/images/project1.png
+title: "Market Dashboard"
+excerpt: "全球主要市场指数监控：行情、涨跌幅、回撤与市场热度。"
 links:
-  - label: "查看 GitHub"
-    url: "https://github.com/Taylor7992/taylor7992.github.io"
+  - label: "查看市场数据"
+    url: "/market/"
 ---
 
-项目介绍详细内容……
+## 全球市场指数
+
+这是一个用于观察全球主要股票市场指数的市场仪表盘。
+
+目前计划展示：
+
+- 标普500（S&P 500）
+- 纳斯达克100（NASDAQ 100）
+- 道琼斯工业指数（Dow Jones）
+- 罗素2000（Russell 2000）
+- 日经225（Nikkei 225）
+- 恒生指数（Hang Seng）
+- 沪深300（CSI 300）
+- 上证指数（SSE）
+- 德国DAX
+- 法国CAC 40
+- 富时100（FTSE 100）
+- 韩国KOSPI
+- 澳大利亚ASX 200
+
+### 主要指标
+
+- 当前指数价格
+- 今日涨跌幅
+- 近一周涨跌幅
+- 近一月涨跌幅
+- YTD 年初至今表现
+- 近一年最高点
+- 当前距最高点的回撤
+- 近一年最低点
+- 从最低点至今的涨幅
+- 历史平均回撤
+
+### 市场热力图
+
+通过不同时间周期对全球主要指数进行排序，快速观察当前表现最强和最弱的市场。
+
+> Market Dashboard 目前处于开发阶段。
