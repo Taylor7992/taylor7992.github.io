@@ -38,8 +38,7 @@ jobs:
       # 4. 运行 ETF 数据更新程序
       - name: Update ETF data
         run: |
-          python scripts/update_etf_data.py
-
+          python scripts/test_tencent.py
       # 5. 把新的数据提交回 GitHub
       - name: Commit updated data
         run: |
