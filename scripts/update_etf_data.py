@@ -12,7 +12,7 @@ import yaml
 # 基本配置
 # ============================================================
 
-WATCHLIST_FILE = "data/etf_watchlist.yml"
+WATCHLIST_FILE = WATCHLIST_FILE = "_data/etf_watchlist.yml"
 OUTPUT_FILE = "assets/data/etf_data.json"
 
 TENCENT_URL = (
