@@ -5,82 +5,207 @@ permalink: /market/
 ---
 
 <style>
+
+  /* ============================================================
+     页面整体
+     ============================================================ */
+
   .etf-page {
     width: 100%;
+    max-width: none;
   }
 
+
+  /* ============================================================
+     顶部标题
+     ============================================================ */
+
   .etf-header {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 
   .etf-header h1 {
-    margin-bottom: 8px;
+    margin: 0 0 6px 0;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
   }
 
   .etf-subtitle {
-    color: #666;
+    color: #777;
     font-size: 14px;
   }
 
+
+  /* ============================================================
+     状态栏
+     ============================================================ */
+
   .etf-status {
-    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    margin: 0 0 14px 0;
     padding: 10px 14px;
-    background: #f7f7f7;
-    border-radius: 6px;
+
+    background: #f7f8fa;
+    border: 1px solid #e6e8eb;
+    border-radius: 7px;
+
     font-size: 13px;
     color: #666;
   }
 
+  .etf-status strong {
+    color: #222;
+    font-weight: 700;
+  }
+
+
+  /* ============================================================
+     表格容器
+     ============================================================ */
+
   .table-wrapper {
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border: 1px solid #e5e5e5;
+
+    border: 1px solid #e3e5e8;
     border-radius: 8px;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    background: #fff;
+
+    -webkit-overflow-scrolling: touch;
   }
+
+
+  /* ============================================================
+     ETF 表格
+     ============================================================ */
 
   .etf-table {
     width: 100%;
-    min-width: 1200px;
-    border-collapse: collapse;
+
+    /*
+     * 关键：
+     * 不再设置 min-width: 1200px
+     */
+    min-width: 0;
+
+    border-collapse: separate;
+    border-spacing: 0;
+
     background: #fff;
-    font-size: 14px;
+
+    font-size: 13px;
+
+    table-layout: auto;
   }
+
+
+  /* ============================================================
+     表头
+     ============================================================ */
 
   .etf-table th {
-    padding: 12px 10px;
+    padding: 10px 8px;
+
     background: #f5f6f7;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #dfe2e5;
+
+    color: #555;
+
     white-space: nowrap;
+
     text-align: center;
+
+    font-size: 12px;
     font-weight: 600;
+
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
+
+
+  /* ============================================================
+     表格内容
+     ============================================================ */
 
   .etf-table td {
-    padding: 11px 10px;
-    border-bottom: 1px solid #eee;
+    padding: 9px 8px;
+
+    border-bottom: 1px solid #eeeeee;
+
     white-space: nowrap;
+
     text-align: center;
+
+    vertical-align: middle;
   }
+
+
+  /* 最后一行取消底部边框 */
+
+  .etf-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+
+  /* 鼠标悬停 */
 
   .etf-table tbody tr:hover {
-    background: #fafafa;
+    background: #f8fafc;
   }
 
+
+  /* ============================================================
+     ETF代码
+     ============================================================ */
+
   .etf-code {
-    font-family: monospace;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
     font-weight: 600;
+
+    color: #444;
   }
+
+
+  /* ============================================================
+     ETF名称
+     ============================================================ */
 
   .etf-name {
     text-align: left !important;
-    min-width: 180px;
+
+    min-width: 120px;
+
+    font-weight: 500;
+
+    color: #222;
   }
 
+
+  /* ============================================================
+     价格
+     ============================================================ */
+
   .price {
-    font-family: monospace;
-    font-weight: 600;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+    font-weight: 700;
+
+    color: #111;
   }
+
+
+  /* ============================================================
+     涨跌颜色
+     ============================================================ */
 
   .positive {
     color: #e53935;
@@ -97,85 +222,240 @@ permalink: /market/
     font-weight: 600;
   }
 
+
+  /* ============================================================
+     当前回撤
+     ============================================================ */
+
+  .etf-table td:first-child {
+    font-weight: 600;
+  }
+
+
+  /* ============================================================
+     加载状态
+     ============================================================ */
+
   .loading {
     padding: 30px !important;
+
     text-align: center !important;
+
     color: #888;
   }
 
+
+  /* ============================================================
+     错误状态
+     ============================================================ */
+
   .error {
     padding: 30px !important;
+
     text-align: center !important;
+
     color: #d32f2f;
   }
 
+
+  /* ============================================================
+     更新时间
+     ============================================================ */
+
   .update-info {
-    margin-top: 12px;
-    font-size: 13px;
-    color: #777;
+    margin-top: 10px;
+
+    font-size: 12px;
+
+    color: #888;
   }
 
-  @media (max-width: 768px) {
-    .etf-table {
-      font-size: 13px;
+
+  /* ============================================================
+     桌面端优化
+     ============================================================ */
+
+  @media (min-width: 769px) {
+
+    .etf-page {
+      /*
+       * 让页面充分利用主题提供的内容宽度
+       */
+      width: 100%;
     }
 
     .etf-table th,
     .etf-table td {
-      padding: 9px 8px;
+      padding-left: 7px;
+      padding-right: 7px;
     }
+
   }
+
+
+  /* ============================================================
+     中等屏幕
+     ============================================================ */
+
+  @media (max-width: 1200px) {
+
+    .etf-table {
+      font-size: 12px;
+    }
+
+    .etf-table th {
+      font-size: 11px;
+    }
+
+    .etf-table th,
+    .etf-table td {
+      padding: 8px 6px;
+    }
+
+  }
+
+
+  /* ============================================================
+     手机端
+     ============================================================ */
+
+  @media (max-width: 768px) {
+
+    .etf-header h1 {
+      font-size: 26px;
+    }
+
+    .etf-subtitle {
+      font-size: 13px;
+    }
+
+    .etf-status {
+      font-size: 12px;
+      padding: 9px 11px;
+    }
+
+    .etf-table {
+      min-width: 1050px;
+      font-size: 12px;
+    }
+
+    .etf-table th {
+      font-size: 11px;
+    }
+
+    .etf-table th,
+    .etf-table td {
+      padding: 8px 7px;
+    }
+
+  }
+
 </style>
+
 
 <div class="etf-page">
 
+
+  <!-- ==========================================================
+       页面标题
+       ========================================================== -->
+
   <div class="etf-header">
+
     <h1>ETF 自选监控</h1>
 
     <div class="etf-subtitle">
       自动更新 ETF 行情、收益率与回撤数据
     </div>
+
   </div>
+
+
+  <!-- ==========================================================
+       数据状态
+       ========================================================== -->
 
   <div id="status" class="etf-status">
     正在加载数据……
   </div>
 
+
+  <!-- ==========================================================
+       ETF 表格
+       ========================================================== -->
+
   <div class="table-wrapper">
+
     <table class="etf-table">
+
       <thead>
+
         <tr>
+
           <th>当前回撤</th>
+
           <th>ETF代码</th>
+
           <th>ETF名称</th>
+
           <th>最新价格</th>
+
           <th>今日涨跌幅</th>
+
           <th>近1周涨跌幅</th>
+
           <th>近1月涨跌幅</th>
+
           <th>最近最高点</th>
+
           <th>最近最低点</th>
+
           <th>最大回撤</th>
+
           <th>平均回撤</th>
+
         </tr>
+
       </thead>
 
+
       <tbody id="etf-body">
+
         <tr>
+
           <td colspan="11" class="loading">
             正在加载 ETF 数据……
           </td>
+
         </tr>
+
       </tbody>
+
     </table>
+
   </div>
+
+
+  <!-- ==========================================================
+       更新时间
+       ========================================================== -->
 
   <div id="update-info" class="update-info"></div>
 
+
 </div>
+
 
 <script>
 
-  const DATA_URL = "{{ '/assets/data/etf_data.json' | relative_url }}";
+
+  // ============================================================
+  // JSON 数据地址
+  // ============================================================
+
+  const DATA_URL =
+    "{{ '/assets/data/etf_data.json' | relative_url }}";
+
 
   // ============================================================
   // 格式化百分比
@@ -183,21 +463,43 @@ permalink: /market/
 
   function formatPercent(value) {
 
-    if (value === null || value === undefined || isNaN(value)) {
+    if (
+      value === null ||
+      value === undefined ||
+      isNaN(value)
+    ) {
       return "--";
     }
 
     const num = Number(value);
 
+
     if (num > 0) {
-      return '<span class="positive">+' + num.toFixed(2) + '%</span>';
+
+      return (
+        '<span class="positive">+' +
+        num.toFixed(2) +
+        '%</span>'
+      );
+
     }
+
 
     if (num < 0) {
-      return '<span class="negative">' + num.toFixed(2) + '%</span>';
+
+      return (
+        '<span class="negative">' +
+        num.toFixed(2) +
+        '%</span>'
+      );
+
     }
 
-    return '<span class="zero">0.00%</span>';
+
+    return (
+      '<span class="zero">0.00%</span>'
+    );
+
   }
 
 
@@ -207,11 +509,16 @@ permalink: /market/
 
   function formatNumber(value, digits = 3) {
 
-    if (value === null || value === undefined || isNaN(value)) {
+    if (
+      value === null ||
+      value === undefined ||
+      isNaN(value)
+    ) {
       return "--";
     }
 
     return Number(value).toFixed(digits);
+
   }
 
 
@@ -221,7 +528,9 @@ permalink: /market/
 
   function renderTable(data) {
 
-    const tbody = document.getElementById("etf-body");
+    const tbody =
+      document.getElementById("etf-body");
+
 
     if (!data || data.length === 0) {
 
@@ -234,80 +543,94 @@ permalink: /market/
       `;
 
       return;
+
     }
 
 
     tbody.innerHTML = data.map(item => {
 
       return `
+
         <tr>
 
           <!-- 当前回撤 -->
+
           <td>
             ${formatPercent(item.current_drawdown)}
           </td>
 
 
           <!-- ETF代码 -->
+
           <td class="etf-code">
             ${item.code || "--"}
           </td>
 
 
           <!-- ETF名称 -->
+
           <td class="etf-name">
             ${item.name || "--"}
           </td>
 
 
           <!-- 最新价格 -->
+
           <td class="price">
             ${formatNumber(item.price, 3)}
           </td>
 
 
           <!-- 今日涨跌幅 -->
+
           <td>
             ${formatPercent(item.change_1d)}
           </td>
 
 
           <!-- 近1周涨跌幅 -->
+
           <td>
             ${formatPercent(item.change_1w)}
           </td>
 
 
           <!-- 近1月涨跌幅 -->
+
           <td>
             ${formatPercent(item.change_1m)}
           </td>
 
 
           <!-- 最近最高点 -->
+
           <td>
             ${formatNumber(item.recent_high, 3)}
           </td>
 
 
           <!-- 最近最低点 -->
+
           <td>
             ${formatNumber(item.recent_low, 3)}
           </td>
 
 
           <!-- 最大回撤 -->
+
           <td>
             ${formatPercent(item.max_drawdown)}
           </td>
 
 
           <!-- 平均回撤 -->
+
           <td>
             ${formatPercent(item.average_drawdown)}
           </td>
 
         </tr>
+
       `;
 
     }).join("");
@@ -321,33 +644,50 @@ permalink: /market/
 
   async function loadETFData() {
 
-    const status = document.getElementById("status");
-    const updateInfo = document.getElementById("update-info");
+    const status =
+      document.getElementById("status");
+
+    const updateInfo =
+      document.getElementById("update-info");
+
 
     try {
 
-      status.textContent = "正在加载 ETF 数据……";
+      status.textContent =
+        "正在加载 ETF 数据……";
+
 
       const response = await fetch(
         DATA_URL + "?t=" + Date.now()
       );
 
+
       if (!response.ok) {
+
         throw new Error(
           "HTTP " + response.status
         );
+
       }
 
 
-      const json = await response.json();
+      const json =
+        await response.json();
 
 
       // --------------------------------------------------------
       // 检查数据结构
       // --------------------------------------------------------
 
-      if (!json.data || !Array.isArray(json.data)) {
-        throw new Error("JSON 数据格式不正确");
+      if (
+        !json.data ||
+        !Array.isArray(json.data)
+      ) {
+
+        throw new Error(
+          "JSON 数据格式不正确"
+        );
+
       }
 
 
@@ -362,10 +702,17 @@ permalink: /market/
       // 状态信息
       // --------------------------------------------------------
 
-      const success = json.success ?? json.data.length;
-      const failed = json.failed ?? 0;
+      const success =
+        json.success ??
+        json.data.length;
+
+      const failed =
+        json.failed ??
+        0;
+
 
       status.innerHTML =
+
         `共监控 <strong>${json.count ?? json.data.length}</strong> 只 ETF，
          成功 <strong>${success}</strong> 只，
          失败 <strong>${failed}</strong> 只`;
@@ -378,14 +725,18 @@ permalink: /market/
       if (json.updated_at) {
 
         updateInfo.textContent =
+
           "数据更新时间：" +
           json.updated_at +
           "　数据来源：" +
           (json.source || "Tencent Finance");
 
-      } else {
+      }
+
+      else {
 
         updateInfo.textContent =
+
           "数据来源：" +
           (json.source || "Tencent Finance");
 
@@ -393,20 +744,36 @@ permalink: /market/
 
     }
 
+
     catch (error) {
 
-      console.error("ETF 数据加载失败：", error);
+      console.error(
+        "ETF 数据加载失败：",
+        error
+      );
+
 
       status.textContent =
         "ETF 数据加载失败";
 
-      document.getElementById("etf-body").innerHTML = `
+
+      document.getElementById(
+        "etf-body"
+      ).innerHTML = `
+
         <tr>
-          <td colspan="11" class="error">
+
+          <td
+            colspan="11"
+            class="error"
+          >
             数据加载失败：${error.message}
           </td>
+
         </tr>
+
       `;
+
 
       updateInfo.textContent =
         "请检查 assets/data/etf_data.json 是否正常生成。";
@@ -424,5 +791,6 @@ permalink: /market/
     "DOMContentLoaded",
     loadETFData
   );
+
 
 </script>
