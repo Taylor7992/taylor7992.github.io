@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 import pandas as pd
 import yaml
 
-from scripts.data_provider.tencent_provider import (
+from scripts.data_provider.manager import (
     get_history,
     get_realtime,
 )
