@@ -7,8 +7,37 @@ permalink: /market/
 <style>
 
   /* ============================================================
-     页面整体
+     ETF 监控页面：突破主题默认宽度
      ============================================================ */
+
+  body:has(.etf-page) .initial-content {
+    width: 100%;
+    max-width: none;
+  }
+
+  body:has(.etf-page) #main {
+    width: 100%;
+    max-width: none;
+  }
+
+  body:has(.etf-page) .page {
+    width: 100%;
+    max-width: none;
+  }
+
+  body:has(.etf-page) .page__inner-wrap {
+    width: 100%;
+    max-width: none;
+  }
+
+  body:has(.etf-page) .page__content {
+    width: 100%;
+    max-width: none;
+  }
+
+  body:has(.etf-page) .page__content > * {
+    max-width: none;
+  }
 
   .etf-page {
     width: 100%;
@@ -17,7 +46,7 @@ permalink: /market/
 
 
   /* ============================================================
-     顶部标题
+     页面标题
      ============================================================ */
 
   .etf-header {
@@ -69,10 +98,14 @@ permalink: /market/
 
   .table-wrapper {
     width: 100%;
+    max-width: none;
 
     border: 1px solid #e3e5e8;
     border-radius: 8px;
 
+    /*
+     * 桌面端不主动制造横向滚动
+     */
     overflow-x: auto;
     overflow-y: hidden;
 
@@ -91,7 +124,7 @@ permalink: /market/
 
     /*
      * 关键：
-     * 不再设置 min-width: 1200px
+     * 删除原来的 min-width: 1200px
      */
     min-width: 0;
 
@@ -111,7 +144,7 @@ permalink: /market/
      ============================================================ */
 
   .etf-table th {
-    padding: 10px 8px;
+    padding: 10px 7px;
 
     background: #f5f6f7;
     border-bottom: 1px solid #dfe2e5;
@@ -136,7 +169,7 @@ permalink: /market/
      ============================================================ */
 
   .etf-table td {
-    padding: 9px 8px;
+    padding: 9px 7px;
 
     border-bottom: 1px solid #eeeeee;
 
@@ -155,7 +188,9 @@ permalink: /market/
   }
 
 
-  /* 鼠标悬停 */
+  /* ============================================================
+     鼠标悬停
+     ============================================================ */
 
   .etf-table tbody tr:hover {
     background: #f8fafc;
@@ -167,7 +202,11 @@ permalink: /market/
      ============================================================ */
 
   .etf-code {
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-family:
+      "SFMono-Regular",
+      Consolas,
+      "Liberation Mono",
+      monospace;
 
     font-weight: 600;
 
@@ -195,7 +234,11 @@ permalink: /market/
      ============================================================ */
 
   .price {
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-family:
+      "SFMono-Regular",
+      Consolas,
+      "Liberation Mono",
+      monospace;
 
     font-weight: 700;
 
@@ -238,9 +281,7 @@ permalink: /market/
 
   .loading {
     padding: 30px !important;
-
     text-align: center !important;
-
     color: #888;
   }
 
@@ -251,9 +292,7 @@ permalink: /market/
 
   .error {
     padding: 30px !important;
-
     text-align: center !important;
-
     color: #d32f2f;
   }
 
@@ -272,22 +311,23 @@ permalink: /market/
 
 
   /* ============================================================
-     桌面端优化
+     大屏幕
      ============================================================ */
 
-  @media (min-width: 769px) {
+  @media (min-width: 1400px) {
 
-    .etf-page {
-      /*
-       * 让页面充分利用主题提供的内容宽度
-       */
-      width: 100%;
+    .etf-table {
+      font-size: 13px;
+    }
+
+    .etf-table th {
+      font-size: 12px;
     }
 
     .etf-table th,
     .etf-table td {
-      padding-left: 7px;
-      padding-right: 7px;
+      padding-left: 8px;
+      padding-right: 8px;
     }
 
   }
@@ -297,7 +337,7 @@ permalink: /market/
      中等屏幕
      ============================================================ */
 
-  @media (max-width: 1200px) {
+  @media (min-width: 769px) and (max-width: 1399px) {
 
     .etf-table {
       font-size: 12px;
@@ -309,7 +349,8 @@ permalink: /market/
 
     .etf-table th,
     .etf-table td {
-      padding: 8px 6px;
+      padding-left: 5px;
+      padding-right: 5px;
     }
 
   }
@@ -332,6 +373,14 @@ permalink: /market/
     .etf-status {
       font-size: 12px;
       padding: 9px 11px;
+    }
+
+    /*
+     * 手机屏幕确实无法同时显示 11 列，
+     * 所以手机端保留横向滚动。
+     */
+    .table-wrapper {
+      overflow-x: auto;
     }
 
     .etf-table {
