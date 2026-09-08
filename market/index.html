@@ -7,7 +7,7 @@ permalink: /market/
 <style>
 
   /* ============================================================
-     ETF 监控页面：突破主题默认宽度
+     ETF 页面：解除主题默认宽度限制
      ============================================================ */
 
   body:has(.etf-page) .initial-content {
@@ -39,9 +39,18 @@ permalink: /market/
     max-width: none;
   }
 
+
+  /* ============================================================
+     ETF 主体
+     宽屏居中，最大 1600px
+     ============================================================ */
+
   .etf-page {
     width: 100%;
-    max-width: none;
+    max-width: 1600px;
+
+    margin-left: auto;
+    margin-right: auto;
   }
 
 
@@ -55,13 +64,16 @@ permalink: /market/
 
   .etf-header h1 {
     margin: 0 0 6px 0;
+
     font-size: 32px;
     font-weight: 700;
+
     letter-spacing: -0.5px;
   }
 
   .etf-subtitle {
     color: #777;
+
     font-size: 14px;
   }
 
@@ -73,21 +85,27 @@ permalink: /market/
   .etf-status {
     display: flex;
     align-items: center;
+
     gap: 6px;
 
     margin: 0 0 14px 0;
+
     padding: 10px 14px;
 
     background: #f7f8fa;
+
     border: 1px solid #e6e8eb;
+
     border-radius: 7px;
 
     font-size: 13px;
+
     color: #666;
   }
 
   .etf-status strong {
     color: #222;
+
     font-weight: 700;
   }
 
@@ -98,14 +116,11 @@ permalink: /market/
 
   .table-wrapper {
     width: 100%;
-    max-width: none;
 
     border: 1px solid #e3e5e8;
+
     border-radius: 8px;
 
-    /*
-     * 桌面端不主动制造横向滚动
-     */
     overflow-x: auto;
     overflow-y: hidden;
 
@@ -123,12 +138,12 @@ permalink: /market/
     width: 100%;
 
     /*
-     * 关键：
-     * 删除原来的 min-width: 1200px
+     * 桌面端不再强制 1200px
      */
     min-width: 0;
 
     border-collapse: separate;
+
     border-spacing: 0;
 
     background: #fff;
@@ -144,9 +159,10 @@ permalink: /market/
      ============================================================ */
 
   .etf-table th {
-    padding: 10px 7px;
+    padding: 10px 10px;
 
     background: #f5f6f7;
+
     border-bottom: 1px solid #dfe2e5;
 
     color: #555;
@@ -156,10 +172,13 @@ permalink: /market/
     text-align: center;
 
     font-size: 12px;
+
     font-weight: 600;
 
     position: sticky;
+
     top: 0;
+
     z-index: 1;
   }
 
@@ -169,7 +188,7 @@ permalink: /market/
      ============================================================ */
 
   .etf-table td {
-    padding: 9px 7px;
+    padding: 9px 10px;
 
     border-bottom: 1px solid #eeeeee;
 
@@ -181,7 +200,7 @@ permalink: /market/
   }
 
 
-  /* 最后一行取消底部边框 */
+  /* 最后一行 */
 
   .etf-table tbody tr:last-child td {
     border-bottom: none;
@@ -252,16 +271,19 @@ permalink: /market/
 
   .positive {
     color: #e53935;
+
     font-weight: 600;
   }
 
   .negative {
     color: #2e9b57;
+
     font-weight: 600;
   }
 
   .zero {
     color: #888;
+
     font-weight: 600;
   }
 
@@ -281,7 +303,9 @@ permalink: /market/
 
   .loading {
     padding: 30px !important;
+
     text-align: center !important;
+
     color: #888;
   }
 
@@ -292,7 +316,9 @@ permalink: /market/
 
   .error {
     padding: 30px !important;
+
     text-align: center !important;
+
     color: #d32f2f;
   }
 
@@ -311,10 +337,29 @@ permalink: /market/
 
 
   /* ============================================================
-     大屏幕
+     超宽屏
      ============================================================ */
 
-  @media (min-width: 1400px) {
+  @media (min-width: 1601px) {
+
+    .etf-page {
+      max-width: 1600px;
+    }
+
+  }
+
+
+  /* ============================================================
+     普通桌面
+     ============================================================ */
+
+  @media (min-width: 769px) and (max-width: 1600px) {
+
+    .etf-page {
+      width: calc(100% - 40px);
+
+      max-width: 1600px;
+    }
 
     .etf-table {
       font-size: 13px;
@@ -337,7 +382,11 @@ permalink: /market/
      中等屏幕
      ============================================================ */
 
-  @media (min-width: 769px) and (max-width: 1399px) {
+  @media (min-width: 769px) and (max-width: 1200px) {
+
+    .etf-page {
+      width: calc(100% - 30px);
+    }
 
     .etf-table {
       font-size: 12px;
@@ -349,8 +398,8 @@ permalink: /market/
 
     .etf-table th,
     .etf-table td {
-      padding-left: 5px;
-      padding-right: 5px;
+      padding-left: 6px;
+      padding-right: 6px;
     }
 
   }
@@ -362,6 +411,11 @@ permalink: /market/
 
   @media (max-width: 768px) {
 
+    .etf-page {
+      width: 100%;
+      max-width: none;
+    }
+
     .etf-header h1 {
       font-size: 26px;
     }
@@ -372,19 +426,22 @@ permalink: /market/
 
     .etf-status {
       font-size: 12px;
+
       padding: 9px 11px;
     }
 
     /*
-     * 手机屏幕确实无法同时显示 11 列，
-     * 所以手机端保留横向滚动。
+     * 手机端屏幕太窄，
+     * 保留横向滚动。
      */
+
     .table-wrapper {
       overflow-x: auto;
     }
 
     .etf-table {
       min-width: 1050px;
+
       font-size: 12px;
     }
 
@@ -584,11 +641,18 @@ permalink: /market/
     if (!data || data.length === 0) {
 
       tbody.innerHTML = `
+
         <tr>
-          <td colspan="11" class="error">
+
+          <td
+            colspan="11"
+            class="error"
+          >
             暂无 ETF 数据
           </td>
+
         </tr>
+
       `;
 
       return;
