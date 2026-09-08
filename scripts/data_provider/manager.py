@@ -49,10 +49,7 @@ def get_history(code, count=1095):
                 f"  → 尝试历史数据源：{provider_name}"
             )
 
-            df = provider.get_history(
-                code,
-                count=count
-            )
+            df = provider.get_history(code)
 
             if df is None:
                 print(
