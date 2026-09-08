@@ -2,9 +2,9 @@ main:
   - title: "首页"
     url: "/"
 
-  - title: "项目"
-    url: "/projects/"
-
+  - title: "ETF监控"
+    url: "/market/"
+    
   - title: "新闻"
     url: "https://newsnow.busiyi.world/"
 
