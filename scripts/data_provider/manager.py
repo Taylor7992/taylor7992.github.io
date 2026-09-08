@@ -8,7 +8,7 @@ ETF 数据源管理器
 4. 对外提供统一的 get_history / get_realtime 接口
 5. 后续新增数据源时，不需要修改 ETF 计算逻辑
 """
-
+from . import akshare_provider
 from . import tencent_provider
 from .base import standardize_history
 
@@ -19,6 +19,7 @@ from .base import standardize_history
 
 # 历史数据优先级
 HISTORY_PROVIDERS = [
+    akshare_provider,
     tencent_provider,
 ]
 
