@@ -1,3 +1,4 @@
+```python
 import json
 import time
 from datetime import datetime, timezone, timedelta
@@ -174,6 +175,29 @@ def process_etf(code):
     latest_close = float(df.iloc[-1]["close"])
 
     # --------------------------------------------------------
+    # 最新成交额
+    # --------------------------------------------------------
+
+    latest_amount = None
+
+    # 如果历史数据中有 amount，就取最新交易日成交额
+    if "amount" in df.columns:
+
+        value = df.iloc[-1]["amount"]
+
+        if pd.notna(value):
+
+            try:
+                latest_amount = float(value)
+            except (ValueError, TypeError):
+                latest_amount = None
+
+    if latest_amount is not None:
+        print(f"最新成交额：{latest_amount:,.2f}")
+    else:
+        print("最新成交额：暂无数据")
+
+    # --------------------------------------------------------
     # 实时数据
     # --------------------------------------------------------
 
@@ -211,7 +235,9 @@ def process_etf(code):
     # 指标计算
     # --------------------------------------------------------
 
-    current_drawdown = calculate_current_drawdown(df)
+    current_drawdown = calculate_current_drawdown(
+        df
+    )
 
     week_return = calculate_return(
         df,
@@ -261,6 +287,8 @@ def process_etf(code):
             4
         ),
 
+        "amount": latest_amount,
+
         "change_1d": daily_change,
 
         "change_1w": week_return,
@@ -302,6 +330,10 @@ def process_etf(code):
 
     print(
         f"价格：{result['price']}"
+    )
+
+    print(
+        f"成交额：{result['amount']}"
     )
 
     print(
@@ -444,6 +476,8 @@ def main():
 
                 "price": None,
 
+                "amount": None,
+
                 "change_1d": None,
 
                 "change_1w": None,
@@ -575,3 +609,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```

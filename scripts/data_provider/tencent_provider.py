@@ -1,19 +1,14 @@
 import json
 import random
 import time
-from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
-import yaml
 
 
 # ============================================================
 # 基本配置
 # ============================================================
-
-WATCHLIST_FILE = WATCHLIST_FILE = "_data/etf_watchlist.yml"
-OUTPUT_FILE = "assets/data/etf_data.json"
 
 TENCENT_URL = (
     "https://proxy.finance.qq.com/"
@@ -66,7 +61,7 @@ def get_history(code):
     """
     获取ETF历史日线数据。
 
-    腾讯返回格式：
+    腾讯返回格式大致为：
 
     [
         日期,
@@ -75,10 +70,14 @@ def get_history(code):
         最高,
         最低,
         成交量,
-        ...,
+        ...
         成交额,
         ...
     ]
+
+    这里除了价格数据之外，
+    同时保存成交量和成交额，
+    后面热力图可以按照成交额计算矩形大小。
     """
 
     symbol = market_code(code)
@@ -109,7 +108,7 @@ def get_history(code):
             if not text:
                 raise RuntimeError("腾讯返回内容为空")
 
-            # 腾讯接口通常：
+            # 腾讯接口通常返回：
             # kline_dayqfq={...}
             if "=" in text and not text.startswith("{"):
                 text = text.split("=", 1)[1]
@@ -145,10 +144,50 @@ def get_history(code):
 
             for bar in bars:
 
+                # 至少需要日期、开高低收
                 if len(bar) < 5:
                     continue
 
                 try:
+
+                    # 腾讯K线：
+                    #
+                    # bar[0] 日期
+                    # bar[1] 开盘
+                    # bar[2] 收盘
+                    # bar[3] 最高
+                    # bar[4] 最低
+                    # bar[5] 成交量
+                    # 后面的字段包含成交额等数据
+                    #
+                    # 不同版本接口字段可能略有差异，
+                    # 所以成交量、成交额单独安全处理。
+
+                    volume = None
+                    amount = None
+
+                    # 成交量
+                    if len(bar) > 5:
+                        try:
+                            volume = float(bar[5])
+                        except (ValueError, TypeError):
+                            volume = None
+
+                    # ====================================================
+                    # 成交额
+                    #
+                    # 腾讯接口常见日K线格式中：
+                    # bar[6] ~ bar[8] 可能存在不同字段，
+                    # 因此这里根据实际返回数据进行判断。
+                    #
+                    # 对ETF来说，成交额通常位于成交量之后的字段。
+                    # ====================================================
+
+                    if len(bar) > 6:
+                        try:
+                            amount = float(bar[6])
+                        except (ValueError, TypeError):
+                            amount = None
 
                     rows.append({
                         "date": bar[0],
@@ -156,6 +195,8 @@ def get_history(code):
                         "close": float(bar[2]),
                         "high": float(bar[3]),
                         "low": float(bar[4]),
+                        "volume": volume,
+                        "amount": amount,
                     })
 
                 except (ValueError, TypeError):
@@ -171,6 +212,7 @@ def get_history(code):
             df["date"] = pd.to_datetime(df["date"])
 
             df = df.sort_values("date")
+
             df = df.drop_duplicates("date")
 
             df = df.reset_index(drop=True)
@@ -225,7 +267,12 @@ def get_realtime(code):
                 "实时行情返回格式异常"
             )
 
-        value = text.split("=", 1)[1].strip().strip('"')
+        value = (
+            text
+            .split("=", 1)[1]
+            .strip()
+            .strip('"')
+        )
 
         fields = value.split("~")
 
@@ -252,12 +299,15 @@ def get_realtime(code):
         open_price = float(fields[5])
 
         if prev_close > 0:
+
             change_pct = (
                 (price - prev_close)
                 / prev_close
                 * 100
             )
+
         else:
+
             change_pct = 0
 
         return {
@@ -275,5 +325,3 @@ def get_realtime(code):
         )
 
         return None
-
-

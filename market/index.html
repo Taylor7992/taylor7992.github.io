@@ -1,4 +1,3 @@
-```html
 ---
 layout: single
 title: "ETF 自选监控"
@@ -6,1434 +5,783 @@ permalink: /market/
 ---
 
 <style>
-
-/* =========================================================
-   1. 页面宽度
-   ========================================================= */
-
-body:has(.etf-page) .initial-content {
-  width: 100%;
-  max-width: none;
-}
-
-body:has(.etf-page) #main {
-  width: 100%;
-  max-width: none;
-}
-
-body:has(.etf-page) .page {
-  width: 100%;
-  max-width: none;
-}
-
-body:has(.etf-page) .page__inner-wrap {
-  width: 100%;
-  max-width: none;
-}
-
-body:has(.etf-page) .page__content {
-  width: 100%;
-  max-width: none;
-}
-
-body:has(.etf-page) .page__content > * {
-  max-width: none;
-}
-
-
-/* =========================================================
-   2. ETF 页面主体
-   ========================================================= */
-
 .etf-page {
   width: 100%;
   max-width: 1600px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  box-sizing: border-box;
 }
 
-
-/* =========================================================
-   3. 页面标题
-   ========================================================= */
-
-.etf-header {
-  margin-bottom: 20px;
-}
-
-.etf-header h1 {
+.etf-title {
   margin-bottom: 8px;
 }
 
-.etf-subtitle {
-  color: #666;
-  font-size: 14px;
+.etf-desc {
+  color: #777;
+  margin-bottom: 20px;
 }
-
-
-/* =========================================================
-   4. 状态栏
-   ========================================================= */
 
 .etf-status {
-  margin: 12px 0;
-  padding: 10px 14px;
-
-  background: #f7f7f7;
-
-  border: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  padding: 12px 16px;
   border-radius: 8px;
-
-  font-size: 13px;
-  color: #666;
+  background: #f5f5f5;
 }
 
-
-/* =========================================================
-   5. 表格外框
-   ========================================================= */
-
-.table-wrapper {
-  width: 100%;
-
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-
-  border: 1px solid #e5e5e5;
-  border-radius: 10px;
-
-  background: #fff;
-}
-
-
-/* =========================================================
-   6. ETF 表格
-   ========================================================= */
-
-.etf-table {
-  width: 100%;
-
-  min-width: 1100px;
-
-  border-collapse: separate;
-  border-spacing: 0;
-
-  background: #fff;
-
+.etf-status-text {
   font-size: 14px;
 }
 
+.etf-update {
+  font-size: 13px;
+  color: #777;
+}
 
-/* =========================================================
-   7. 表头
-   ========================================================= */
+.heatmap-box {
+  margin: 20px 0 30px;
+}
 
-.etf-table th {
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
 
-  padding: 11px 10px;
+.heatmap-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
 
-  background: #f5f6f7;
+.heatmap-buttons {
+  display: flex;
+  gap: 6px;
+}
 
-  border-bottom: 1px solid #ddd;
+.heatmap-btn {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #333;
+  border-radius: 5px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
 
-  white-space: nowrap;
+.heatmap-btn:hover {
+  background: #f0f0f0;
+}
 
+.heatmap-btn.active {
+  background: #333;
+  color: #fff;
+  border-color: #333;
+}
+
+.heatmap {
+  width: 100%;
+  height: 520px;
+  display: flex;
+  gap: 3px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #eee;
+}
+
+.heatmap-column {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.heatmap-item {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  color: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 5px;
+  transition: filter 0.15s ease;
+}
 
-  font-weight: 600;
-
-  position: sticky;
-  top: 0;
+.heatmap-item:hover {
+  filter: brightness(1.12);
   z-index: 2;
 }
 
-
-/* =========================================================
-   8. 可排序表头
-   ========================================================= */
-
-.etf-table th.sortable {
-
-  cursor: pointer;
-
-  user-select: none;
-
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-}
-
-
-.etf-table th.sortable:hover {
-
-  background: #e9ebee;
-
-}
-
-
-/* =========================================================
-   9. 排序箭头
-   ========================================================= */
-
-.sort-arrow {
-
-  display: inline-block;
-
-  min-width: 14px;
-
-  margin-left: 3px;
-
-  font-size: 12px;
-
+.heatmap-code {
+  font-size: 14px;
   font-weight: 700;
-
+  line-height: 1.2;
 }
 
+.heatmap-name {
+  font-size: 12px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-/* =========================================================
-   10. 表格单元格
-   ========================================================= */
+.heatmap-percent {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.heatmap-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  background: #f5f5f5;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.etf-table {
+  width: 100%;
+  min-width: 1050px;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 14px;
+}
+
+.etf-table th {
+  position: relative;
+  background: #f5f5f5;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 11px 10px;
+  border-bottom: 2px solid #ddd;
+}
 
 .etf-table td {
-
-  padding: 10px 10px;
-
+  padding: 10px;
   border-bottom: 1px solid #eee;
-
   white-space: nowrap;
-
   text-align: center;
-
 }
-
-
-/* =========================================================
-   11. 鼠标悬停
-   ========================================================= */
-
-.etf-table tbody tr {
-
-  transition: background 0.12s ease;
-
-}
-
 
 .etf-table tbody tr:hover {
-
   background: #fafafa;
-
 }
 
-
-/* 最后一行取消底部边框 */
-
-.etf-table tbody tr:last-child td {
-
-  border-bottom: none;
-
+.sortable {
+  cursor: pointer;
+  user-select: none;
 }
 
+.sortable:hover {
+  background: #eaeaea;
+}
 
-/* =========================================================
-   12. ETF 代码
-   ========================================================= */
+.sort-indicator {
+  margin-left: 4px;
+  font-size: 11px;
+  color: #999;
+}
 
-.etf-code {
-
-  font-family: monospace;
-
+.up {
+  color: #d93025;
   font-weight: 600;
-
 }
 
-
-/* =========================================================
-   13. ETF 名称
-   ========================================================= */
-
-.etf-name {
-
-  text-align: left !important;
-
-  min-width: 180px;
-
-}
-
-
-/* =========================================================
-   14. 价格
-   ========================================================= */
-
-.price {
-
-  font-family: monospace;
-
+.down {
+  color: #188038;
   font-weight: 600;
-
 }
 
+.neutral {
+  color: #666;
+}
 
-/* =========================================================
-   15. 涨跌颜色
-   ========================================================= */
-
-.positive {
-
-  color: #e53935;
-
+.current-drawdown {
   font-weight: 600;
-
 }
-
-
-.negative {
-
-  color: #2e9b57;
-
-  font-weight: 600;
-
-}
-
-
-.zero {
-
-  color: #888;
-
-  font-weight: 600;
-
-}
-
-
-/* =========================================================
-   16. 加载状态
-   ========================================================= */
 
 .loading {
-
-  padding: 30px !important;
-
-  text-align: center !important;
-
-  color: #888;
-
+  padding: 30px;
+  text-align: center;
+  color: #777;
 }
-
-
-/* =========================================================
-   17. 错误状态
-   ========================================================= */
 
 .error {
-
-  padding: 30px !important;
-
-  text-align: center !important;
-
-  color: #d32f2f;
-
+  padding: 20px;
+  text-align: center;
+  color: #d93025;
+  background: #fff5f5;
+  border-radius: 8px;
 }
-
-
-/* =========================================================
-   18. 更新时间
-   ========================================================= */
-
-.update-info {
-
-  margin-top: 12px;
-
-  font-size: 13px;
-
-  color: #777;
-
-}
-
-
-/* =========================================================
-   19. 手机端
-   ========================================================= */
 
 @media (max-width: 768px) {
-
   .etf-page {
-
-    max-width: none;
-
+    padding: 0 10px 30px;
   }
 
+  .heatmap {
+    height: 420px;
+  }
+
+  .heatmap-code {
+    font-size: 12px;
+  }
+
+  .heatmap-name {
+    font-size: 10px;
+  }
+
+  .heatmap-percent {
+    font-size: 11px;
+  }
 
   .etf-table {
-
-    min-width: 1100px;
-
     font-size: 13px;
-
   }
-
 
   .etf-table th,
   .etf-table td {
-
-    padding: 9px 8px;
-
+    padding: 8px 7px;
   }
-
-
-  .etf-status {
-
-    font-size: 12px;
-
-  }
-
-
-  .etf-subtitle {
-
-    font-size: 13px;
-
-  }
-
 }
-
 </style>
-
 
 <div class="etf-page">
 
-  <!-- =====================================================
-       页面标题
-       ===================================================== -->
+  <h1 class="etf-title">ETF 自选监控</h1>
+  <div class="etf-desc">自动更新 ETF 行情、收益率与回撤数据</div>
 
-  <div class="etf-header">
+  <div class="etf-status">
+    <div class="etf-status-text" id="statusText">
+      正在加载 ETF 数据...
+    </div>
+    <div class="etf-update" id="updateTime"></div>
+  </div>
 
-    <h1>ETF 自选监控</h1>
+  <div class="heatmap-box">
+    <div class="heatmap-header">
+      <h2 class="heatmap-title">ETF 热力图</h2>
 
-    <div class="etf-subtitle">
-      自动更新 ETF 行情、收益率与回撤数据
+      <div class="heatmap-buttons">
+        <button class="heatmap-btn active" data-period="change_1d">今日</button>
+        <button class="heatmap-btn" data-period="change_1w">1周</button>
+        <button class="heatmap-btn" data-period="change_1m">1月</button>
+      </div>
     </div>
 
+    <div id="heatmap" class="heatmap">
+      <div class="heatmap-empty">正在加载...</div>
+    </div>
   </div>
 
-
-  <!-- =====================================================
-       数据状态
-       ===================================================== -->
-
-  <div id="status" class="etf-status">
-    正在加载数据……
-  </div>
-
-
-  <!-- =====================================================
-       ETF 表格
-       ===================================================== -->
-
-  <div class="table-wrapper">
-
+  <div class="table-wrap">
     <table class="etf-table">
-
       <thead>
-
         <tr>
+          <th>当前回撤</th>
+          <th>ETF代码</th>
+          <th>ETF名称</th>
+          <th>最新价格</th>
 
-          <th>
-            当前回撤
-          </th>
-
-          <th>
-            ETF代码
-          </th>
-
-          <th>
-            ETF名称
-          </th>
-
-          <th>
-            最新价格
-          </th>
-
-
-          <!-- 今日涨跌幅 -->
-
-          <th
-            class="sortable"
-            data-sort="change_1d"
-            title="点击排序"
-          >
+          <th class="sortable" data-sort="change_1d">
             今日涨跌幅
-            <span class="sort-arrow"></span>
+            <span class="sort-indicator" data-indicator="change_1d"></span>
           </th>
 
-
-          <!-- 近1周涨跌幅 -->
-
-          <th
-            class="sortable"
-            data-sort="change_1w"
-            title="点击排序"
-          >
+          <th class="sortable" data-sort="change_1w">
             近1周涨跌幅
-            <span class="sort-arrow"></span>
+            <span class="sort-indicator" data-indicator="change_1w"></span>
           </th>
 
-
-          <!-- 近1月涨跌幅 -->
-
-          <th
-            class="sortable"
-            data-sort="change_1m"
-            title="点击排序"
-          >
+          <th class="sortable" data-sort="change_1m">
             近1月涨跌幅
-            <span class="sort-arrow"></span>
+            <span class="sort-indicator" data-indicator="change_1m"></span>
           </th>
 
-
-          <th>
-            最近最高点
-          </th>
-
-          <th>
-            最近最低点
-          </th>
-
-          <th>
-            最大回撤
-          </th>
-
-          <th>
-            平均回撤
-          </th>
-
+          <th>最近最高点</th>
+          <th>最近最低点</th>
+          <th>最大回撤</th>
+          <th>平均回撤</th>
         </tr>
-
       </thead>
 
-
-      <tbody id="etf-body">
-
+      <tbody id="etfTableBody">
         <tr>
-
-          <td
-            colspan="11"
-            class="loading"
-          >
-            正在加载 ETF 数据……
-          </td>
-
+          <td colspan="11" class="loading">正在加载 ETF 数据...</td>
         </tr>
-
       </tbody>
-
     </table>
-
   </div>
-
-
-  <!-- =====================================================
-       更新时间
-       ===================================================== -->
-
-  <div
-    id="update-info"
-    class="update-info"
-  ></div>
 
 </div>
 
-
 <script>
-
-/* =========================================================
-   1. ETF 数据地址
-   =========================================================
-
-   直接使用网站根目录下的绝对路径。
-
-   JSON 文件：
-
-   /assets/data/etf_data.json
-
-   这样不会因为当前页面位于 /market/
-   而错误请求：
-
-   /market/assets/data/etf_data.json
-   */
-
-const DATA_URL = "/assets/data/etf_data.json";
-
-
-/* =========================================================
-   2. 排序状态
-   ========================================================= */
-
-let currentSort = {
-
-  key: null,
-
-  direction: "desc"
-
-};
-
-
-/* =========================================================
-   3. 保存原始数据
-   ========================================================= */
-
-let originalData = [];
-
-
-/* =========================================================
-   4. 百分比格式化
-   ========================================================= */
-
-function formatPercent(value) {
-
-  if (
-    value === null ||
-    value === undefined ||
-    value === "" ||
-    isNaN(Number(value))
-  ) {
-
-    return "--";
-
-  }
-
-
-  const num = Number(value);
-
-
-  if (num > 0) {
-
-    return `
-      <span class="positive">
-        +${num.toFixed(2)}%
-      </span>
-    `;
-
-  }
-
-
-  if (num < 0) {
-
-    return `
-      <span class="negative">
-        ${num.toFixed(2)}%
-      </span>
-    `;
-
-  }
-
-
-  return `
-    <span class="zero">
-      0.00%
-    </span>
-  `;
-
-}
-
-
-/* =========================================================
-   5. 数字格式化
-   ========================================================= */
-
-function formatNumber(value, digits = 3) {
-
-  if (
-    value === null ||
-    value === undefined ||
-    value === "" ||
-    isNaN(Number(value))
-  ) {
-
-    return "--";
-
-  }
-
-
-  return Number(value).toFixed(digits);
-
-}
-
-
-/* =========================================================
-   6. 安全显示文字
-   ========================================================= */
-
-function escapeHTML(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-
-    return "";
-
-  }
-
-
-  return String(value)
-
-    .replace(/&/g, "&amp;")
-
-    .replace(/</g, "&lt;")
-
-    .replace(/>/g, "&gt;")
-
-    .replace(/"/g, "&quot;")
-
-    .replace(/'/g, "&#039;");
-
-}
-
-
-/* =========================================================
-   7. 排序数据
-   ========================================================= */
-
-function sortData(data, key) {
-
-  /*
-   * 点击当前列：
-   *
-   * desc → asc
-   * asc  → desc
-   */
-
-  if (currentSort.key === key) {
-
-    currentSort.direction =
-      currentSort.direction === "desc"
-        ? "asc"
-        : "desc";
-
-  }
-
-  /*
-   * 点击新列：
-   *
-   * 默认降序
-   */
-
-  else {
-
-    currentSort.key = key;
-
-    currentSort.direction = "desc";
-
-  }
-
-
-  const direction =
-    currentSort.direction;
-
-
-  /*
-   * 创建副本进行排序
-   *
-   * 不修改 originalData
-   */
-
-  return [...data].sort((a, b) => {
-
-    const valueA = Number(a[key]);
-
-    const valueB = Number(b[key]);
-
-
-    /*
-     * 两个都没有数据
-     */
-
-    if (
-      isNaN(valueA) &&
-      isNaN(valueB)
-    ) {
-
-      return 0;
-
+(function () {
+  const DATA_URL = "/assets/data/etf_data.json";
+
+  let originalData = [];
+  let currentSort = null;
+  let sortDirection = "desc";
+  let heatmapPeriod = "change_1d";
+
+  function formatPercent(value) {
+    if (value === null || value === undefined || value === "" || isNaN(value)) {
+      return "--";
     }
 
+    const num = Number(value);
 
-    /*
-     * A 没数据 → 放最后
-     */
-
-    if (isNaN(valueA)) {
-
-      return 1;
-
+    if (num > 0) {
+      return "+" + num.toFixed(2) + "%";
     }
 
+    return num.toFixed(2) + "%";
+  }
 
-    /*
-     * B 没数据 → 放最后
-     */
-
-    if (isNaN(valueB)) {
-
-      return -1;
-
+  function formatNumber(value, decimals) {
+    if (value === null || value === undefined || value === "" || isNaN(value)) {
+      return "--";
     }
 
+    return Number(value).toFixed(decimals);
+  }
 
-    /*
-     * 降序
-     */
-
-    if (direction === "desc") {
-
-      return valueB - valueA;
-
+  function formatAmount(value) {
+    if (value === null || value === undefined || value === "" || isNaN(value)) {
+      return "--";
     }
 
+    const num = Number(value);
 
-    /*
-     * 升序
-     */
+    if (num >= 100000000) {
+      return (num / 100000000).toFixed(2) + "亿";
+    }
 
-    return valueA - valueB;
+    if (num >= 10000) {
+      return (num / 10000).toFixed(2) + "万";
+    }
 
-  });
+    return num.toFixed(0);
+  }
 
-}
+  function escapeHTML(value) {
+    if (value === null || value === undefined) {
+      return "";
+    }
 
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
-/* =========================================================
-   8. 更新排序箭头
-   ========================================================= */
+  function getChangeClass(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+      return "neutral";
+    }
 
-function updateSortIndicators() {
+    if (Number(value) > 0) {
+      return "up";
+    }
 
-  document
-    .querySelectorAll(".sortable")
-    .forEach(th => {
+    if (Number(value) < 0) {
+      return "down";
+    }
 
-      const key =
-        th.dataset.sort;
+    return "neutral";
+  }
 
+  function getHeatColor(value, maxAbs) {
+    const num = Number(value);
 
-      const arrow =
-        th.querySelector(".sort-arrow");
+    if (!isFinite(num) || num === 0) {
+      return "rgb(150,150,150)";
+    }
 
+    const ratio = Math.min(Math.abs(num) / Math.max(maxAbs, 1), 1);
 
-      if (!arrow) {
+    if (num > 0) {
+      const r = 150 + Math.round(80 * ratio);
+      const g = 80 - Math.round(45 * ratio);
+      const b = 80 - Math.round(45 * ratio);
 
-        return;
+      return "rgb(" + r + "," + g + "," + b + ")";
+    }
 
-      }
+    const r = 80 - Math.round(45 * ratio);
+    const g = 150 + Math.round(80 * ratio);
+    const b = 80 - Math.round(45 * ratio);
 
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
 
-      /*
-       * 清空箭头
-       */
+  function getHeatmapValue(item) {
+    const value = Number(item[heatmapPeriod]);
+    return isFinite(value) ? value : 0;
+  }
 
-      arrow.textContent = "";
+  function renderHeatmap(data) {
+    const heatmap = document.getElementById("heatmap");
 
+    if (!data || data.length === 0) {
+      heatmap.innerHTML = '<div class="heatmap-empty">暂无数据</div>';
+      return;
+    }
 
-      /*
-       * 当前排序列显示箭头
-       */
+    const items = data
+      .filter(function (item) {
+        return item && item.code;
+      })
+      .map(function (item) {
+        return {
+          data: item,
+          amount: Number(item.amount) > 0 ? Number(item.amount) : 1,
+          value: getHeatmapValue(item)
+        };
+      });
 
-      if (currentSort.key === key) {
+    if (items.length === 0) {
+      heatmap.innerHTML = '<div class="heatmap-empty">暂无数据</div>';
+      return;
+    }
 
-        arrow.textContent =
-          currentSort.direction === "desc"
-            ? " ↓"
-            : " ↑";
+    const maxAbs = Math.max.apply(
+      null,
+      items.map(function (item) {
+        return Math.abs(item.value);
+      })
+    );
 
-      }
-
+    items.sort(function (a, b) {
+      return b.amount - a.amount;
     });
 
-}
+    const columnCount = window.innerWidth <= 768 ? 3 : 5;
+    const columns = [];
 
+    for (let i = 0; i < columnCount; i++) {
+      columns.push({
+        items: [],
+        total: 0
+      });
+    }
 
-/* =========================================================
-   9. 渲染表格
-   ========================================================= */
+    items.forEach(function (item) {
+      let target = columns[0];
 
-function renderTable(data) {
+      columns.forEach(function (column) {
+        if (column.total < target.total) {
+          target = column;
+        }
+      });
 
-  const tbody =
-    document.getElementById("etf-body");
+      target.items.push(item);
+      target.total += item.amount;
+    });
 
+    const totalAmount = columns.reduce(function (sum, column) {
+      return sum + column.total;
+    }, 0);
 
-  /*
-   * 检查 tbody
-   */
+    heatmap.innerHTML = "";
 
-  if (!tbody) {
+    columns.forEach(function (column) {
+      if (column.items.length === 0) {
+        return;
+      }
 
-    console.error(
-      "找不到 #etf-body"
-    );
+      const columnDiv = document.createElement("div");
+      columnDiv.className = "heatmap-column";
 
-    return;
+      const width = totalAmount > 0
+        ? column.total / totalAmount * 100
+        : 100 / columns.length;
 
+      columnDiv.style.flex = "0 0 " + width + "%";
+
+      column.items.forEach(function (item) {
+        const div = document.createElement("div");
+        div.className = "heatmap-item";
+
+        const height = column.total > 0
+          ? item.amount / column.total * 100
+          : 100 / column.items.length;
+
+        div.style.height = height + "%";
+        div.style.background = getHeatColor(item.value, maxAbs);
+
+        const dataItem = item.data;
+
+        const code = dataItem.code || "--";
+        const name = dataItem.name || "--";
+        const amount = formatAmount(dataItem.amount);
+        const today = formatPercent(dataItem.change_1d);
+        const week = formatPercent(dataItem.change_1w);
+        const month = formatPercent(dataItem.change_1m);
+        const drawdown = formatPercent(dataItem.current_drawdown);
+
+        div.title =
+          name + "（" + code + "）\n" +
+          "成交额：" + amount + "\n" +
+          "今日：" + today + "\n" +
+          "1周：" + week + "\n" +
+          "1月：" + month + "\n" +
+          "当前回撤：" + drawdown;
+
+        div.innerHTML =
+          '<div>' +
+            '<div class="heatmap-code">' + escapeHTML(code) + '</div>' +
+            '<div class="heatmap-name">' + escapeHTML(name) + '</div>' +
+            '<div class="heatmap-percent">' + escapeHTML(formatPercent(item.value)) + '</div>' +
+          '</div>';
+
+        columnDiv.appendChild(div);
+      });
+
+      heatmap.appendChild(columnDiv);
+    });
   }
 
+  function sortData(data) {
+    const result = data.slice();
 
-  /*
-   * 没有数据
-   */
+    if (!currentSort) {
+      return result;
+    }
 
-  if (
-    !Array.isArray(data) ||
-    data.length === 0
-  ) {
+    result.sort(function (a, b) {
+      const aValue = Number(a[currentSort]);
+      const bValue = Number(b[currentSort]);
 
-    tbody.innerHTML = `
+      if (isNaN(aValue)) return 1;
+      if (isNaN(bValue)) return -1;
 
-      <tr>
+      return sortDirection === "asc"
+        ? aValue - bValue
+        : bValue - aValue;
+    });
 
-        <td
-          colspan="11"
-          class="error"
-        >
-
-          暂无 ETF 数据
-
-        </td>
-
-      </tr>
-
-    `;
-
-    return;
-
+    return result;
   }
 
+  function updateSortIndicators() {
+    document.querySelectorAll(".sort-indicator").forEach(function (el) {
+      el.textContent = "";
+    });
 
-  /*
-   * 生成 ETF 表格
-   */
+    if (!currentSort) {
+      return;
+    }
 
-  tbody.innerHTML = data.map(item => {
-
-    return `
-
-      <tr>
-
-        <!-- 当前回撤 -->
-
-        <td>
-          ${formatPercent(item.current_drawdown)}
-        </td>
-
-
-        <!-- ETF代码 -->
-
-        <td class="etf-code">
-          ${escapeHTML(item.code || "--")}
-        </td>
-
-
-        <!-- ETF名称 -->
-
-        <td class="etf-name">
-          ${escapeHTML(item.name || "--")}
-        </td>
-
-
-        <!-- 最新价格 -->
-
-        <td class="price">
-          ${formatNumber(item.price, 3)}
-        </td>
-
-
-        <!-- 今日涨跌幅 -->
-
-        <td>
-          ${formatPercent(item.change_1d)}
-        </td>
-
-
-        <!-- 近1周涨跌幅 -->
-
-        <td>
-          ${formatPercent(item.change_1w)}
-        </td>
-
-
-        <!-- 近1月涨跌幅 -->
-
-        <td>
-          ${formatPercent(item.change_1m)}
-        </td>
-
-
-        <!-- 最近最高点 -->
-
-        <td>
-          ${formatNumber(item.recent_high, 3)}
-        </td>
-
-
-        <!-- 最近最低点 -->
-
-        <td>
-          ${formatNumber(item.recent_low, 3)}
-        </td>
-
-
-        <!-- 最大回撤 -->
-
-        <td>
-          ${formatPercent(item.max_drawdown)}
-        </td>
-
-
-        <!-- 平均回撤 -->
-
-        <td>
-          ${formatPercent(item.average_drawdown)}
-        </td>
-
-      </tr>
-
-    `;
-
-  }).join("");
-
-
-  /*
-   * 更新排序箭头
-   */
-
-  updateSortIndicators();
-
-}
-
-
-/* =========================================================
-   10. 加载 ETF 数据
-   ========================================================= */
-
-async function loadETFData() {
-
-  const status =
-    document.getElementById("status");
-
-
-  const updateInfo =
-    document.getElementById("update-info");
-
-
-  try {
-
-    /*
-     * 加载提示
-     */
-
-    status.textContent =
-      "正在加载 ETF 数据……";
-
-
-    /*
-     * 加入时间戳防止浏览器缓存
-     */
-
-    const url =
-      DATA_URL +
-      "?t=" +
-      Date.now();
-
-
-    console.log(
-      "正在请求 ETF 数据：",
-      url
+    const indicator = document.querySelector(
+      '[data-indicator="' + currentSort + '"]'
     );
 
+    if (indicator) {
+      indicator.textContent = sortDirection === "asc" ? "▲" : "▼";
+    }
+  }
 
-    /*
-     * 请求 JSON
-     */
+  function renderTable(data) {
+    const tbody = document.getElementById("etfTableBody");
 
-    const response =
-      await fetch(
-        url,
+    if (!data || data.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="11" class="loading">暂无 ETF 数据</td></tr>';
+      return;
+    }
+
+    const sortedData = sortData(data);
+
+    tbody.innerHTML = "";
+
+    sortedData.forEach(function (item) {
+      const tr = document.createElement("tr");
+
+      const currentDrawdownClass =
+        getChangeClass(item.current_drawdown);
+
+      tr.innerHTML =
+        '<td class="' + currentDrawdownClass + ' current-drawdown">' +
+          formatPercent(item.current_drawdown) +
+        '</td>' +
+
+        '<td>' +
+          escapeHTML(item.code || "--") +
+        '</td>' +
+
+        '<td>' +
+          escapeHTML(item.name || "--") +
+        '</td>' +
+
+        '<td>' +
+          formatNumber(item.price, 3) +
+        '</td>' +
+
+        '<td class="' + getChangeClass(item.change_1d) + '">' +
+          formatPercent(item.change_1d) +
+        '</td>' +
+
+        '<td class="' + getChangeClass(item.change_1w) + '">' +
+          formatPercent(item.change_1w) +
+        '</td>' +
+
+        '<td class="' + getChangeClass(item.change_1m) + '">' +
+          formatPercent(item.change_1m) +
+        '</td>' +
+
+        '<td>' +
+          formatNumber(item.recent_high, 3) +
+        '</td>' +
+
+        '<td>' +
+          formatNumber(item.recent_low, 3) +
+        '</td>' +
+
+        '<td class="' + getChangeClass(item.max_drawdown) + '">' +
+          formatPercent(item.max_drawdown) +
+        '</td>' +
+
+        '<td class="' + getChangeClass(item.average_drawdown) + '">' +
+          formatPercent(item.average_drawdown) +
+        '</td>';
+
+      tbody.appendChild(tr);
+    });
+
+    updateSortIndicators();
+  }
+
+  function bindSortEvents() {
+    document.querySelectorAll(".sortable").forEach(function (th) {
+      th.addEventListener("click", function () {
+        const sortKey = th.dataset.sort;
+
+        if (currentSort === sortKey) {
+          sortDirection =
+            sortDirection === "desc" ? "asc" : "desc";
+        } else {
+          currentSort = sortKey;
+          sortDirection = "desc";
+        }
+
+        renderTable(originalData);
+      });
+    });
+  }
+
+  function bindHeatmapEvents() {
+    document.querySelectorAll(".heatmap-btn").forEach(function (button) {
+      button.addEventListener("click", function () {
+        document.querySelectorAll(".heatmap-btn").forEach(function (btn) {
+          btn.classList.remove("active");
+        });
+
+        button.classList.add("active");
+        heatmapPeriod = button.dataset.period;
+
+        renderHeatmap(originalData);
+      });
+    });
+
+    window.addEventListener("resize", function () {
+      renderHeatmap(originalData);
+    });
+  }
+
+  async function loadETFData() {
+    const statusText = document.getElementById("statusText");
+    const updateTime = document.getElementById("updateTime");
+
+    try {
+      const response = await fetch(
+        DATA_URL + "?t=" + Date.now(),
         {
-          method: "GET",
           cache: "no-store"
         }
       );
 
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
 
-    /*
-     * 检查 HTTP 状态
-     */
+      const json = await response.json();
 
-    if (!response.ok) {
+      let data = [];
 
-      throw new Error(
-        "HTTP " +
-        response.status +
-        "：" +
-        response.statusText
-      );
+      if (Array.isArray(json)) {
+        data = json;
+      } else if (Array.isArray(json.data)) {
+        data = json.data;
+      }
 
+      if (data.length === 0) {
+        throw new Error("数据为空");
+      }
+
+      originalData = data;
+
+      renderHeatmap(originalData);
+      renderTable(originalData);
+
+      statusText.textContent =
+        "数据加载成功，共 " + originalData.length + " 只 ETF";
+
+      if (json.updated_at) {
+        updateTime.textContent =
+          "更新时间：" + json.updated_at;
+      }
+
+    } catch (error) {
+      console.error(error);
+
+      statusText.textContent = "ETF 数据加载失败";
+
+      updateTime.textContent = "";
+
+      document.getElementById("heatmap").innerHTML =
+        '<div class="heatmap-empty">数据加载失败：' +
+        escapeHTML(error.message) +
+        "</div>";
+
+      document.getElementById("etfTableBody").innerHTML =
+        '<tr><td colspan="11" class="error">' +
+        "数据加载失败：" +
+        escapeHTML(error.message) +
+        "<br><br>请检查 assets/data/etf_data.json" +
+        "</td></tr>";
     }
-
-
-    /*
-     * 解析 JSON
-     */
-
-    const json =
-      await response.json();
-
-
-    console.log(
-      "ETF JSON 数据：",
-      json
-    );
-
-
-    /* =====================================================
-       11. 兼容两种 JSON 格式
-       =====================================================
-
-       第一种：
-
-       {
-         "data": [...]
-       }
-
-       第二种：
-
-       [...]
-       */
-
-    let data = null;
-
-
-    /*
-     * 标准格式
-     */
-
-    if (
-      json &&
-      Array.isArray(json.data)
-    ) {
-
-      data = json.data;
-
-    }
-
-
-    /*
-     * 如果 JSON 本身就是数组
-     */
-
-    else if (
-      Array.isArray(json)
-    ) {
-
-      data = json;
-
-    }
-
-
-    /*
-     * 数据格式错误
-     */
-
-    else {
-
-      throw new Error(
-        "JSON 数据格式不正确，找不到 data 数组"
-      );
-
-    }
-
-
-    /*
-     * 保存原始数据
-     */
-
-    originalData =
-      data;
-
-
-    /*
-     * 首次加载：
-     * 保持 Python 生成的原始顺序
-     */
-
-    renderTable(
-      originalData
-    );
-
-
-    /* =====================================================
-       12. 统计信息
-       ===================================================== */
-
-    const count =
-      json.count !== undefined
-        ? json.count
-        : data.length;
-
-
-    const success =
-      json.success !== undefined
-        ? json.success
-        : data.length;
-
-
-    const failed =
-      json.failed !== undefined
-        ? json.failed
-        : 0;
-
-
-    status.innerHTML = `
-
-      共监控
-      <strong>
-        ${count}
-      </strong>
-      只 ETF，
-
-      成功
-      <strong>
-        ${success}
-      </strong>
-      只，
-
-      失败
-      <strong>
-        ${failed}
-      </strong>
-      只
-
-    `;
-
-
-    /* =====================================================
-       13. 更新时间
-       ===================================================== */
-
-    if (
-      json.updated_at
-    ) {
-
-      updateInfo.textContent =
-        "数据更新时间：" +
-        json.updated_at +
-        "　数据来源：" +
-        (
-          json.source ||
-          "Tencent Finance"
-        );
-
-    }
-
-    else {
-
-      updateInfo.textContent =
-        "数据来源：" +
-        (
-          json.source ||
-          "Tencent Finance"
-        );
-
-    }
-
-
-    /*
-     * 控制台提示加载成功
-     */
-
-    console.log(
-      "ETF 数据加载成功，共",
-      data.length,
-      "只"
-    );
-
   }
 
-
-  catch (error) {
-
-    /*
-     * 控制台输出完整错误
-     */
-
-    console.error(
-      "ETF 数据加载失败：",
-      error
-    );
-
-
-    /*
-     * 页面状态
-     */
-
-    status.textContent =
-      "ETF 数据加载失败";
-
-
-    /*
-     * 显示错误原因
-     */
-
-    document
-      .getElementById("etf-body")
-      .innerHTML = `
-
-        <tr>
-
-          <td
-            colspan="11"
-            class="error"
-          >
-
-            数据加载失败：
-            ${escapeHTML(error.message)}
-
-          </td>
-
-        </tr>
-
-      `;
-
-
-    /*
-     * 更新时间区域
-     */
-
-    updateInfo.textContent =
-      "数据文件：" +
-      DATA_URL;
-
-  }
-
-}
-
-
-/* =========================================================
-   14. 绑定排序
-   ========================================================= */
-
-function bindSortEvents() {
-
-  document
-    .querySelectorAll(".sortable")
-    .forEach(th => {
-
-      th.addEventListener(
-        "click",
-        () => {
-
-          /*
-           * 获取排序字段
-           */
-
-          const key =
-            th.dataset.sort;
-
-
-          /*
-           * 防止错误字段
-           */
-
-          if (!key) {
-
-            return;
-
-          }
-
-
-          /*
-           * 排序
-           */
-
-          const sortedData =
-            sortData(
-              originalData,
-              key
-            );
-
-
-          /*
-           * 重新渲染
-           */
-
-          renderTable(
-            sortedData
-          );
-
-
-          /*
-           * 更新提示
-           */
-
-          const status =
-            document.getElementById("status");
-
-
-          if (status) {
-
-            const directionText =
-              currentSort.direction === "desc"
-                ? "从高到低"
-                : "从低到高";
-
-
-            status.innerHTML = `
-
-              共监控
-              <strong>
-                ${originalData.length}
-              </strong>
-              只 ETF，
-
-              当前按
-              <strong>
-                ${th.textContent.replace(/[↓↑]/g, "").trim()}
-              </strong>
-
-              ${directionText}
-
-            `;
-
-          }
-
-        }
-      );
-
-    });
-
-}
-
-
-/* =========================================================
-   15. 页面加载
-   ========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    /*
-     * 绑定排序按钮
-     */
-
+  document.addEventListener("DOMContentLoaded", function () {
     bindSortEvents();
-
-
-    /*
-     * 加载 ETF 数据
-     */
-
+    bindHeatmapEvents();
     loadETFData();
-
-  }
-);
-
+  });
+})();
 </script>
-```
