@@ -19,7 +19,8 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 "
                   "(Windows NT 10.0; Win64; x64) "
                   "AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/131.0 Safari/537.36"
+                  "(KHTML, like Gecko) "
+                  "Chrome/131.0 Safari/537.36"
 }
 
 # 获取约 3 年日线
@@ -61,23 +62,17 @@ def get_history(code):
     """
     获取ETF历史日线数据。
 
-    腾讯返回格式大致为：
+    腾讯历史K线主要提供：
 
-    [
-        日期,
-        开盘,
-        收盘,
-        最高,
-        最低,
-        成交量,
-        ...
-        成交额,
-        ...
-    ]
+    bar[0] 日期
+    bar[1] 开盘
+    bar[2] 收盘
+    bar[3] 最高
+    bar[4] 最低
+    bar[5] 成交量
 
-    这里除了价格数据之外，
-    同时保存成交量和成交额，
-    后面热力图可以按照成交额计算矩形大小。
+    注意：
+    历史K线这里不再猜测成交额字段。
     """
 
     symbol = market_code(code)
@@ -93,7 +88,6 @@ def get_history(code):
     for attempt in range(3):
 
         try:
-
             response = requests.get(
                 TENCENT_URL,
                 params=params,
@@ -108,7 +102,7 @@ def get_history(code):
             if not text:
                 raise RuntimeError("腾讯返回内容为空")
 
-            # 腾讯接口通常返回：
+            # 腾讯接口可能返回：
             # kline_dayqfq={...}
             if "=" in text and not text.startswith("{"):
                 text = text.split("=", 1)[1]
@@ -144,50 +138,17 @@ def get_history(code):
 
             for bar in bars:
 
-                # 至少需要日期、开高低收
-                if len(bar) < 5:
+                if len(bar) < 6:
                     continue
 
                 try:
 
-                    # 腾讯K线：
-                    #
-                    # bar[0] 日期
-                    # bar[1] 开盘
-                    # bar[2] 收盘
-                    # bar[3] 最高
-                    # bar[4] 最低
-                    # bar[5] 成交量
-                    # 后面的字段包含成交额等数据
-                    #
-                    # 不同版本接口字段可能略有差异，
-                    # 所以成交量、成交额单独安全处理。
-
                     volume = None
-                    amount = None
 
-                    # 成交量
-                    if len(bar) > 5:
-                        try:
-                            volume = float(bar[5])
-                        except (ValueError, TypeError):
-                            volume = None
-
-                    # ====================================================
-                    # 成交额
-                    #
-                    # 腾讯接口常见日K线格式中：
-                    # bar[6] ~ bar[8] 可能存在不同字段，
-                    # 因此这里根据实际返回数据进行判断。
-                    #
-                    # 对ETF来说，成交额通常位于成交量之后的字段。
-                    # ====================================================
-
-                    if len(bar) > 6:
-                        try:
-                            amount = float(bar[6])
-                        except (ValueError, TypeError):
-                            amount = None
+                    try:
+                        volume = float(bar[5])
+                    except (ValueError, TypeError):
+                        pass
 
                     rows.append({
                         "date": bar[0],
@@ -196,7 +157,6 @@ def get_history(code):
                         "high": float(bar[3]),
                         "low": float(bar[4]),
                         "volume": volume,
-                        "amount": amount,
                     })
 
                 except (ValueError, TypeError):
@@ -243,7 +203,23 @@ def get_realtime(code):
     """
     获取腾讯实时行情。
 
-    使用 qt.gtimg.cn。
+    这里除了价格和涨跌幅之外，
+    重点读取当天成交额。
+
+    腾讯字段：
+
+    fields[1]  = 名称
+    fields[3]  = 当前价格
+    fields[4]  = 昨收
+    fields[5]  = 今开
+    fields[6]  = 成交量（手）
+    fields[30] = 时间
+    fields[31] = 涨跌额
+    fields[32] = 涨跌幅
+    fields[33] = 最高
+    fields[34] = 最低
+    fields[36] = 成交量（手）
+    fields[37] = 成交额（万元）
     """
 
     symbol = market_code(code)
@@ -260,6 +236,9 @@ def get_realtime(code):
 
         response.raise_for_status()
 
+        # 腾讯实时接口通常使用 GBK
+        response.encoding = "gbk"
+
         text = response.text.strip()
 
         if "=" not in text:
@@ -272,22 +251,14 @@ def get_realtime(code):
             .split("=", 1)[1]
             .strip()
             .strip('"')
+            .strip(";")
         )
 
         fields = value.split("~")
 
-        # 腾讯字段：
-        # 0 代码
-        # 1 名称
-        # 2 代码
-        # 3 当前价格
-        # 4 昨收
-        # 5 今开
-        # ...
-
-        if len(fields) < 6:
+        if len(fields) < 38:
             raise RuntimeError(
-                "实时行情字段不足"
+                f"实时行情字段不足：{len(fields)}"
             )
 
         name = fields[1]
@@ -297,6 +268,10 @@ def get_realtime(code):
         prev_close = float(fields[4])
 
         open_price = float(fields[5])
+
+        # ----------------------------------------------------
+        # 今日涨跌幅
+        # ----------------------------------------------------
 
         if prev_close > 0:
 
@@ -310,12 +285,48 @@ def get_realtime(code):
 
             change_pct = 0
 
+        # ----------------------------------------------------
+        # 成交量
+        # ----------------------------------------------------
+
+        volume = None
+
+        try:
+            volume = float(fields[36])
+        except (ValueError, TypeError):
+            pass
+
+        # ----------------------------------------------------
+        # 成交额
+        #
+        # 腾讯 fields[37] 的单位是：
+        # 万元
+        #
+        # 页面热力图使用元，
+        # 所以这里 × 10000
+        # ----------------------------------------------------
+
+        amount = None
+
+        try:
+
+            amount_wan = float(fields[37])
+
+            if amount_wan >= 0:
+                amount = amount_wan * 10000
+
+        except (ValueError, TypeError):
+
+            amount = None
+
         return {
             "name": name,
             "price": price,
             "prev_close": prev_close,
             "open": open_price,
             "change_pct": change_pct,
+            "volume": volume,
+            "amount": amount,
         }
 
     except Exception as e:
