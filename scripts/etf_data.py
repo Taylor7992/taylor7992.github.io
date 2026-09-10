@@ -1,6 +1,5 @@
 import json
-import time
-from datetime import datetime, timezone, timedelta
+import os
 
 import pandas as pd
 import yaml
@@ -12,457 +11,24 @@ from scripts.data_provider.manager import (
 
 
 # ============================================================
-# 配置
+# 文件位置
 # ============================================================
 
 WATCHLIST_FILE = "_data/etf_watchlist.yml"
+
 OUTPUT_FILE = "assets/data/etf_data.json"
 
 
 # ============================================================
-# 北京时间
-# ============================================================
-
-BEIJING_TZ = timezone(timedelta(hours=8))
-
-
-def get_beijing_time():
-    """
-    获取当前北京时间
-    """
-    return datetime.now(BEIJING_TZ)
-
-
-# ============================================================
-# 基础计算
-# ============================================================
-
-def pct(value):
-    if value is None:
-        return None
-
-    return round(float(value), 2)
-
-
-def calculate_return(df, days):
-    """
-    计算指定交易日周期的收益率
-
-    days=5  -> 约1周
-    days=22 -> 约1月
-    """
-
-    if len(df) <= days:
-        return None
-
-    latest = df.iloc[-1]["close"]
-    previous = df.iloc[-days - 1]["close"]
-
-    if previous == 0:
-        return None
-
-    return pct(
-        (latest / previous - 1) * 100
-    )
-
-
-def calculate_current_drawdown(df):
-    """
-    当前回撤：
-
-    当前收盘价 / 历史最高价 - 1
-    """
-
-    if df.empty:
-        return None
-
-    latest = df.iloc[-1]["close"]
-    highest = df["high"].max()
-
-    if highest == 0:
-        return None
-
-    return pct(
-        (latest / highest - 1) * 100
-    )
-
-
-def calculate_max_drawdown(df):
-    """
-    历史最大回撤
-    """
-
-    if df.empty:
-        return None
-
-    prices = df["close"]
-
-    running_max = prices.cummax()
-
-    drawdown = (
-        prices / running_max - 1
-    ) * 100
-
-    return pct(
-        drawdown.min()
-    )
-
-
-def calculate_average_drawdown(df):
-    """
-    历史平均回撤
-    """
-
-    if df.empty:
-        return None
-
-    prices = df["close"]
-
-    running_max = prices.cummax()
-
-    drawdown = (
-        prices / running_max - 1
-    ) * 100
-
-    return pct(
-        drawdown.mean()
-    )
-
-
-def calculate_recent_high(df):
-    """
-    历史最高价
-    """
-
-    if df.empty:
-        return None
-
-    return round(
-        float(df["high"].max()),
-        4
-    )
-
-
-def calculate_recent_low(df):
-    """
-    历史最低价
-    """
-
-    if df.empty:
-        return None
-
-    return round(
-        float(df["low"].min()),
-        4
-    )
-
-
-# ============================================================
-# ETF 处理
-# ============================================================
-
-def process_etf(code):
-
-    code = str(code).zfill(6)
-
-    print()
-    print("=" * 60)
-    print(f"正在处理：{code}")
-
-    # --------------------------------------------------------
-    # 历史数据
-    # --------------------------------------------------------
-
-    print("获取历史数据...")
-
-    df = get_history(code)
-
-    if df is None or df.empty:
-        raise RuntimeError(
-            f"{code} 历史数据为空"
-        )
-
-    print(
-        f"历史数据：{len(df)} 条"
-    )
-
-    print(
-        f"历史区间："
-        f"{df.iloc[0]['date'].strftime('%Y-%m-%d')}"
-        f" ~ "
-        f"{df.iloc[-1]['date'].strftime('%Y-%m-%d')}"
-    )
-
-    latest_close = float(
-        df.iloc[-1]["close"]
-    )
-
-    # --------------------------------------------------------
-    # 先从历史数据尝试获取成交额
-    # --------------------------------------------------------
-
-    latest_amount = None
-
-    if "amount" in df.columns:
-
-        value = df.iloc[-1]["amount"]
-
-        if pd.notna(value):
-
-            try:
-
-                latest_amount = float(value)
-
-            except (ValueError, TypeError):
-
-                latest_amount = None
-
-    # --------------------------------------------------------
-    # 实时数据
-    # --------------------------------------------------------
-
-    realtime = get_realtime(code)
-
-    if realtime:
-
-        name = realtime.get(
-            "name",
-            ""
-        )
-
-        latest_price = realtime.get(
-            "price",
-            latest_close
-        )
-
-        daily_change = realtime.get(
-            "change_pct"
-        )
-
-        # ----------------------------------------------------
-        # 优先使用实时成交额
-        # ----------------------------------------------------
-
-        realtime_amount = realtime.get(
-            "amount"
-        )
-
-        if realtime_amount is not None:
-
-            try:
-
-                latest_amount = float(
-                    realtime_amount
-                )
-
-            except (ValueError, TypeError):
-
-                pass
-
-        print(
-            f"实时价格：{latest_price}"
-        )
-
-        if daily_change is not None:
-
-            print(
-                f"今日涨跌："
-                f"{daily_change:.2f}%"
-            )
-
-        if latest_amount is not None:
-
-            print(
-                f"成交额："
-                f"{latest_amount:,.2f} 元"
-            )
-
-        else:
-
-            print(
-                "成交额：暂无数据"
-            )
-
-    else:
-
-        name = ""
-
-        latest_price = latest_close
-
-        daily_change = None
-
-        print(
-            "实时行情失败，"
-            "使用历史收盘价"
-        )
-
-        if latest_amount is not None:
-
-            print(
-                f"历史成交额："
-                f"{latest_amount:,.2f} 元"
-            )
-
-    # --------------------------------------------------------
-    # 指标计算
-    # --------------------------------------------------------
-
-    current_drawdown = (
-        calculate_current_drawdown(df)
-    )
-
-    week_return = (
-        calculate_return(
-            df,
-            5
-        )
-    )
-
-    month_return = (
-        calculate_return(
-            df,
-            22
-        )
-    )
-
-    max_drawdown = (
-        calculate_max_drawdown(df)
-    )
-
-    average_drawdown = (
-        calculate_average_drawdown(df)
-    )
-
-    recent_high = (
-        calculate_recent_high(df)
-    )
-
-    recent_low = (
-        calculate_recent_low(df)
-    )
-
-    # --------------------------------------------------------
-    # 名称兜底
-    # --------------------------------------------------------
-
-    if not name:
-
-        name = code
-
-    # --------------------------------------------------------
-    # 最终结果
-    # --------------------------------------------------------
-
-    result = {
-
-        "code": code,
-
-        "name": name,
-
-        "price": round(
-            float(latest_price),
-            4
-        ),
-
-        # 最新成交额，单位：元
-        "amount": latest_amount,
-
-        "change_1d": daily_change,
-
-        "change_1w": week_return,
-
-        "change_1m": month_return,
-
-        "current_drawdown":
-            current_drawdown,
-
-        "recent_high":
-            recent_high,
-
-        "recent_low":
-            recent_low,
-
-        "max_drawdown":
-            max_drawdown,
-
-        "average_drawdown":
-            average_drawdown,
-
-        "history_start":
-            df.iloc[0]["date"].strftime(
-                "%Y-%m-%d"
-            ),
-
-        "history_end":
-            df.iloc[-1]["date"].strftime(
-                "%Y-%m-%d"
-            ),
-    }
-
-    # --------------------------------------------------------
-    # 控制台输出
-    # --------------------------------------------------------
-
-    print()
-    print("计算结果：")
-
-    print(
-        f"名称：{name}"
-    )
-
-    print(
-        f"价格：{result['price']}"
-    )
-
-    print(
-        f"成交额：{result['amount']}"
-    )
-
-    print(
-        f"今日：{result['change_1d']}"
-    )
-
-    print(
-        f"1周：{result['change_1w']}"
-    )
-
-    print(
-        f"1月：{result['change_1m']}"
-    )
-
-    print(
-        f"当前回撤："
-        f"{result['current_drawdown']}"
-    )
-
-    print(
-        f"最高："
-        f"{result['recent_high']}"
-    )
-
-    print(
-        f"最低："
-        f"{result['recent_low']}"
-    )
-
-    print(
-        f"最大回撤："
-        f"{result['max_drawdown']}"
-    )
-
-    print(
-        f"平均回撤："
-        f"{result['average_drawdown']}"
-    )
-
-    return result
-
-
-# ============================================================
-# 自选 ETF
+# 读取 ETF 自选列表
 # ============================================================
 
 def load_watchlist():
+
+    if not os.path.exists(WATCHLIST_FILE):
+        raise FileNotFoundError(
+            f"找不到自选列表：{WATCHLIST_FILE}"
+        )
 
     with open(
         WATCHLIST_FILE,
@@ -473,27 +39,399 @@ def load_watchlist():
         data = yaml.safe_load(f)
 
     if not data:
+        raise ValueError(
+            "ETF 自选列表为空"
+        )
 
-        return []
+    # 兼容不同 YAML 写法
+    if isinstance(data, dict):
 
-    codes = data.get(
-        "codes",
-        []
-    )
+        if "etfs" in data:
+            items = data["etfs"]
 
-    unique_codes = []
+        elif "watchlist" in data:
+            items = data["watchlist"]
 
-    for code in codes:
+        else:
+            items = data.values()
 
-        code = str(code).zfill(6)
+    else:
+        items = data
 
-        if code not in unique_codes:
+    codes = []
 
-            unique_codes.append(
-                code
+    for item in items:
+
+        if isinstance(item, dict):
+
+            code = (
+                item.get("code")
+                or item.get("symbol")
             )
 
-    return unique_codes
+        else:
+            code = item
+
+        if code is None:
+            continue
+
+        code = str(code).strip().zfill(6)
+
+        if code not in codes:
+            codes.append(code)
+
+    if not codes:
+        raise ValueError(
+            "没有读取到任何 ETF 代码"
+        )
+
+    return codes
+
+
+# ============================================================
+# 计算区间涨跌幅
+# ============================================================
+
+def calculate_return(df, days):
+    """
+    days：
+    5  = 近 1 周
+    21 = 近 1 月
+    """
+
+    if len(df) <= days:
+        return None
+
+    old_price = float(
+        df.iloc[-days - 1]["close"]
+    )
+
+    latest_price = float(
+        df.iloc[-1]["close"]
+    )
+
+    if old_price == 0:
+        return None
+
+    return (
+        (latest_price - old_price)
+        / old_price
+        * 100
+    )
+
+
+# ============================================================
+# 计算当前回撤
+# ============================================================
+
+def calculate_current_drawdown(df):
+
+    closes = df["close"].astype(float)
+
+    latest = float(closes.iloc[-1])
+
+    highest = float(closes.max())
+
+    if highest <= 0:
+        return None
+
+    return (
+        (latest - highest)
+        / highest
+        * 100
+    )
+
+
+# ============================================================
+# 计算最大回撤
+# ============================================================
+
+def calculate_max_drawdown(df):
+
+    closes = df["close"].astype(float)
+
+    running_max = closes.cummax()
+
+    drawdown = (
+        (closes - running_max)
+        / running_max
+        * 100
+    )
+
+    return float(drawdown.min())
+
+
+# ============================================================
+# 计算平均回撤
+# ============================================================
+
+def calculate_average_drawdown(df):
+
+    closes = df["close"].astype(float)
+
+    running_max = closes.cummax()
+
+    drawdown = (
+        (closes - running_max)
+        / running_max
+        * 100
+    )
+
+    return float(drawdown.mean())
+
+
+# ============================================================
+# 处理单个 ETF
+# ============================================================
+
+def process_etf(code):
+
+    print(f"\n正在处理：{code}")
+
+    # --------------------------------------------------------
+    # 获取历史数据
+    # --------------------------------------------------------
+
+    df = get_history(code)
+
+    if df is None or df.empty:
+        raise RuntimeError(
+            f"{code} 没有获取到历史数据"
+        )
+
+    # --------------------------------------------------------
+    # 确保按照日期排序
+    # --------------------------------------------------------
+
+    df = df.sort_values("date")
+
+    df = df.reset_index(drop=True)
+
+    # --------------------------------------------------------
+    # 最新历史收盘价
+    # --------------------------------------------------------
+
+    latest_close = float(
+        df.iloc[-1]["close"]
+    )
+
+    # --------------------------------------------------------
+    # 计算历史成交额
+    #
+    # amount 是每天估算出来的成交额
+    # --------------------------------------------------------
+
+    if "amount" not in df.columns:
+        df["amount"] = 0.0
+
+    df["amount"] = pd.to_numeric(
+        df["amount"],
+        errors="coerce"
+    ).fillna(0)
+
+    # --------------------------------------------------------
+    # 今日成交额
+    # --------------------------------------------------------
+
+    amount_1d = float(
+        df.iloc[-1]["amount"]
+    )
+
+    # --------------------------------------------------------
+    # 最近 5 个交易日成交额
+    # --------------------------------------------------------
+
+    amount_1w = float(
+        df.tail(5)["amount"].sum()
+    )
+
+    # --------------------------------------------------------
+    # 最近 21 个交易日成交额
+    # --------------------------------------------------------
+
+    amount_1m = float(
+        df.tail(21)["amount"].sum()
+    )
+
+    # --------------------------------------------------------
+    # 获取实时行情
+    # --------------------------------------------------------
+
+    realtime = get_realtime(code)
+
+    name = code
+
+    price = latest_close
+
+    change_1d = None
+
+    realtime_amount = None
+
+    if realtime:
+
+        name = realtime.get(
+            "name",
+            code
+        )
+
+        price = float(
+            realtime.get(
+                "price",
+                latest_close
+            )
+        )
+
+        change_1d = realtime.get(
+            "change_pct"
+        )
+
+        realtime_amount = realtime.get(
+            "amount"
+        )
+
+    # --------------------------------------------------------
+    # 如果腾讯实时接口成功获取到了当天成交额
+    #
+    # 使用实时成交额替换历史估算值
+    #
+    # 同时修正 1 周 / 1 月成交额
+    # --------------------------------------------------------
+
+    if (
+        realtime_amount is not None
+        and realtime_amount >= 0
+    ):
+
+        realtime_amount = float(
+            realtime_amount
+        )
+
+        old_latest_amount = amount_1d
+
+        # 今日
+        amount_1d = realtime_amount
+
+        # 最近 5 日
+        amount_1w = (
+            amount_1w
+            - old_latest_amount
+            + realtime_amount
+        )
+
+        # 最近 21 日
+        amount_1m = (
+            amount_1m
+            - old_latest_amount
+            + realtime_amount
+        )
+
+    # --------------------------------------------------------
+    # 如果实时涨跌幅获取失败
+    # 使用历史数据计算今日涨跌幅
+    # --------------------------------------------------------
+
+    if change_1d is None:
+
+        if len(df) >= 2:
+
+            yesterday = float(
+                df.iloc[-2]["close"]
+            )
+
+            today = latest_close
+
+            if yesterday != 0:
+
+                change_1d = (
+                    (today - yesterday)
+                    / yesterday
+                    * 100
+                )
+
+    # --------------------------------------------------------
+    # 计算其他指标
+    # --------------------------------------------------------
+
+    change_1w = calculate_return(
+        df,
+        5
+    )
+
+    change_1m = calculate_return(
+        df,
+        21
+    )
+
+    current_drawdown = (
+        calculate_current_drawdown(df)
+    )
+
+    max_drawdown = (
+        calculate_max_drawdown(df)
+    )
+
+    average_drawdown = (
+        calculate_average_drawdown(df)
+    )
+
+    recent_high = float(
+        df["high"].tail(252).max()
+    )
+
+    recent_low = float(
+        df["low"].tail(252).min()
+    )
+
+    # --------------------------------------------------------
+    # 返回结果
+    # --------------------------------------------------------
+
+    result = {
+
+        "code": code,
+
+        "name": name,
+
+        "price": price,
+
+        # 涨跌幅
+        "change_1d": change_1d,
+        "change_1w": change_1w,
+        "change_1m": change_1m,
+
+        # 三个周期的成交额
+        "amount_1d": amount_1d,
+        "amount_1w": amount_1w,
+        "amount_1m": amount_1m,
+
+        # 回撤
+        "recent_high": recent_high,
+        "recent_low": recent_low,
+
+        "max_drawdown": max_drawdown,
+
+        "average_drawdown": average_drawdown,
+
+        "current_drawdown": current_drawdown,
+
+        # 数据时间范围
+        "history_start": (
+            df.iloc[0]["date"].strftime("%Y-%m-%d")
+        ),
+
+        "history_end": (
+            df.iloc[-1]["date"].strftime("%Y-%m-%d")
+        ),
+    }
+
+    print(
+        f"  {code} {name}"
+        f"  今日成交额：{amount_1d:,.0f}"
+        f"  1周：{amount_1w:,.0f}"
+        f"  1月：{amount_1m:,.0f}"
+    )
+
+    return result
 
 
 # ============================================================
@@ -502,28 +440,16 @@ def load_watchlist():
 
 def main():
 
-    print()
+    print("=" * 60)
+
+    print("开始更新 ETF 数据")
 
     print("=" * 60)
 
-    print(
-        "ETF 数据更新程序"
-    )
+    watchlist = load_watchlist()
 
     print(
-        "当前数据源：Tencent Finance"
-    )
-
-    print("=" * 60)
-
-    # --------------------------------------------------------
-    # 读取自选列表
-    # --------------------------------------------------------
-
-    codes = load_watchlist()
-
-    print(
-        f"读取到 {len(codes)} 个 ETF"
+        f"共读取 {len(watchlist)} 个 ETF"
     )
 
     results = []
@@ -533,20 +459,16 @@ def main():
     failed = 0
 
     # --------------------------------------------------------
-    # 逐个处理 ETF
+    # 逐个获取 ETF
     # --------------------------------------------------------
 
-    for code in codes:
+    for code in watchlist:
 
         try:
 
-            result = process_etf(
-                code
-            )
+            result = process_etf(code)
 
-            results.append(
-                result
-            )
+            results.append(result)
 
             success += 1
 
@@ -554,105 +476,43 @@ def main():
 
             failed += 1
 
-            print()
-
             print(
-                f"❌ {code} "
-                f"处理失败：{e}"
+                f"  {code} 获取失败：{e}"
             )
 
-            results.append({
-
-                "code": code,
-
-                "name": code,
-
-                "price": None,
-
-                "amount": None,
-
-                "change_1d": None,
-
-                "change_1w": None,
-
-                "change_1m": None,
-
-                "current_drawdown": None,
-
-                "recent_high": None,
-
-                "recent_low": None,
-
-                "max_drawdown": None,
-
-                "average_drawdown": None,
-
-                "history_start": None,
-
-                "history_end": None,
-
-                "error": True,
-            })
-
-        time.sleep(
-            0.5
-        )
-
     # --------------------------------------------------------
-    # 获取北京时间
-    # --------------------------------------------------------
-
-    updated_at = (
-        get_beijing_time()
-    )
-
-    updated_at_text = (
-        updated_at.strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-    )
-
-    # --------------------------------------------------------
-    # 输出 JSON
+    # 生成最终 JSON
     # --------------------------------------------------------
 
     output = {
 
-        "updated_at":
-            updated_at_text,
+        "updated_at": pd.Timestamp.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
 
-        "source":
-            "Tencent Finance",
+        "source": "Tencent Finance",
 
-        "count":
-            len(results),
+        "count": len(watchlist),
 
-        "success":
-            success,
+        "success": success,
 
-        "failed":
-            failed,
+        "failed": failed,
 
-        "data":
-            results,
+        "data": results,
     }
 
     # --------------------------------------------------------
-    # 创建输出目录
+    # 创建目录
     # --------------------------------------------------------
-
-    import os
 
     output_dir = os.path.dirname(
         OUTPUT_FILE
     )
 
-    if output_dir:
-
-        os.makedirs(
-            output_dir,
-            exist_ok=True
-        )
+    os.makedirs(
+        output_dir,
+        exist_ok=True
+    )
 
     # --------------------------------------------------------
     # 写入 JSON
@@ -671,45 +531,26 @@ def main():
             indent=2
         )
 
-    # --------------------------------------------------------
-    # 完成
-    # --------------------------------------------------------
-
     print()
 
     print("=" * 60)
 
+    print("ETF 数据更新完成")
+
     print(
-        "更新完成"
+        f"成功：{success}"
     )
 
     print(
-        f"成功："
-        f"{success}/{len(codes)}"
+        f"失败：{failed}"
     )
 
     print(
-        f"失败："
-        f"{failed}/{len(codes)}"
-    )
-
-    print(
-        f"更新时间（北京时间）："
-        f"{updated_at_text}"
-    )
-
-    print(
-        f"输出文件："
-        f"{OUTPUT_FILE}"
+        f"输出文件：{OUTPUT_FILE}"
     )
 
     print("=" * 60)
 
 
-# ============================================================
-# 程序入口
-# ============================================================
-
 if __name__ == "__main__":
-
     main()

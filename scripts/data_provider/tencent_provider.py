@@ -7,7 +7,7 @@ import requests
 
 
 # ============================================================
-# 基本配置
+# 腾讯财经接口
 # ============================================================
 
 TENCENT_URL = (
@@ -23,26 +23,15 @@ HEADERS = {
                   "Chrome/131.0 Safari/537.36"
 }
 
-# 获取约 3 年日线
+# 获取大约 3 年的历史数据
 KLINE_COUNT = 1095
 
 
 # ============================================================
-# ETF代码转换
+# 判断 ETF 所属市场
 # ============================================================
 
 def market_code(code):
-    """
-    根据ETF代码判断上海/深圳市场。
-
-    上海：
-        5xxxxx
-
-    深圳：
-        15xxxx
-        16xxxx
-    """
-
     code = str(code).zfill(6)
 
     if code.startswith("5"):
@@ -55,24 +44,28 @@ def market_code(code):
 
 
 # ============================================================
-# 获取腾讯历史K线
+# 获取历史 K 线
 # ============================================================
 
 def get_history(code):
     """
-    获取ETF历史日线数据。
+    获取 ETF 历史日线数据。
 
-    腾讯历史K线主要提供：
+    腾讯历史 K 线主要提供：
+    日期、开盘、收盘、最高、最低、成交量
 
-    bar[0] 日期
-    bar[1] 开盘
-    bar[2] 收盘
-    bar[3] 最高
-    bar[4] 最低
-    bar[5] 成交量
+    腾讯历史接口没有稳定提供历史成交额，
+    所以这里使用：
 
-    注意：
-    历史K线这里不再猜测成交额字段。
+        成交量 × 收盘价 × 100
+
+    来估算每日成交额。
+
+    成交量单位为“手”，
+    ETF 1 手通常为 100 份。
+
+    后面的 etf_data.py 会使用这些数据
+    计算近 1 周、近 1 月成交额。
     """
 
     symbol = market_code(code)
@@ -92,7 +85,7 @@ def get_history(code):
                 TENCENT_URL,
                 params=params,
                 headers=HEADERS,
-                timeout=20,
+                timeout=20
             )
 
             response.raise_for_status()
@@ -102,8 +95,8 @@ def get_history(code):
             if not text:
                 raise RuntimeError("腾讯返回内容为空")
 
-            # 腾讯接口可能返回：
-            # kline_dayqfq={...}
+            # 腾讯有时会返回：
+            # kline_dayqfq= {...}
             if "=" in text and not text.startswith("{"):
                 text = text.split("=", 1)[1]
 
@@ -116,47 +109,67 @@ def get_history(code):
                     f"腾讯接口返回错误：{data}"
                 )
 
-            item = (
-                data
-                .get("data", {})
-                .get(symbol)
-            )
+            item = data.get("data", {}).get(symbol)
 
             if not item:
                 raise RuntimeError(
-                    f"没有找到ETF数据：{symbol}"
+                    f"没有找到 ETF 数据：{symbol}"
                 )
 
             bars = item.get("qfqday") or item.get("day")
 
             if not bars:
                 raise RuntimeError(
-                    f"没有找到K线：{symbol}"
+                    f"没有找到 K 线：{symbol}"
                 )
 
             rows = []
 
             for bar in bars:
 
-                if len(bar) < 6:
+                if len(bar) < 5:
                     continue
 
                 try:
-
                     volume = None
 
-                    try:
-                        volume = float(bar[5])
-                    except (ValueError, TypeError):
-                        pass
+                    # 腾讯历史 K 线中的成交量
+                    if len(bar) > 5:
+                        try:
+                            volume = float(bar[5])
+                        except (ValueError, TypeError):
+                            volume = None
+
+                    open_price = float(bar[1])
+                    close_price = float(bar[2])
+                    high_price = float(bar[3])
+                    low_price = float(bar[4])
+
+                    # ------------------------------------------------
+                    # 估算每日成交额
+                    #
+                    # 成交量单位：手
+                    # 1 手 ETF = 100 份
+                    #
+                    # 成交额 ≈ 成交量 × 收盘价 × 100
+                    # ------------------------------------------------
+                    amount = None
+
+                    if volume is not None and close_price > 0:
+                        amount = (
+                            volume
+                            * close_price
+                            * 100
+                        )
 
                     rows.append({
                         "date": bar[0],
-                        "open": float(bar[1]),
-                        "close": float(bar[2]),
-                        "high": float(bar[3]),
-                        "low": float(bar[4]),
+                        "open": open_price,
+                        "close": close_price,
+                        "high": high_price,
+                        "low": low_price,
                         "volume": volume,
+                        "amount": amount,
                     })
 
                 except (ValueError, TypeError):
@@ -164,7 +177,7 @@ def get_history(code):
 
             if not rows:
                 raise RuntimeError(
-                    f"K线解析后没有有效数据：{symbol}"
+                    f"K 线解析后没有有效数据：{symbol}"
                 )
 
             df = pd.DataFrame(rows)
@@ -196,30 +209,15 @@ def get_history(code):
 
 
 # ============================================================
-# 获取腾讯实时行情
+# 获取实时行情
 # ============================================================
 
 def get_realtime(code):
     """
     获取腾讯实时行情。
 
-    这里除了价格和涨跌幅之外，
-    重点读取当天成交额。
-
-    腾讯字段：
-
-    fields[1]  = 名称
-    fields[3]  = 当前价格
-    fields[4]  = 昨收
-    fields[5]  = 今开
-    fields[6]  = 成交量（手）
-    fields[30] = 时间
-    fields[31] = 涨跌额
-    fields[32] = 涨跌幅
-    fields[33] = 最高
-    fields[34] = 最低
-    fields[36] = 成交量（手）
-    fields[37] = 成交额（万元）
+    除了名称、价格、涨跌幅之外，
+    同时获取当天实际成交额。
     """
 
     symbol = market_code(code)
@@ -231,13 +229,10 @@ def get_realtime(code):
         response = requests.get(
             url,
             headers=HEADERS,
-            timeout=15,
+            timeout=15
         )
 
         response.raise_for_status()
-
-        # 腾讯实时接口通常使用 GBK
-        response.encoding = "gbk"
 
         text = response.text.strip()
 
@@ -251,14 +246,13 @@ def get_realtime(code):
             .split("=", 1)[1]
             .strip()
             .strip('"')
-            .strip(";")
         )
 
         fields = value.split("~")
 
-        if len(fields) < 38:
+        if len(fields) < 6:
             raise RuntimeError(
-                f"实时行情字段不足：{len(fields)}"
+                "实时行情字段不足"
             )
 
         name = fields[1]
@@ -269,55 +263,40 @@ def get_realtime(code):
 
         open_price = float(fields[5])
 
-        # ----------------------------------------------------
+        # ------------------------------------------------
         # 今日涨跌幅
-        # ----------------------------------------------------
+        # ------------------------------------------------
 
         if prev_close > 0:
-
             change_pct = (
                 (price - prev_close)
                 / prev_close
                 * 100
             )
-
         else:
-
             change_pct = 0
 
-        # ----------------------------------------------------
-        # 成交量
-        # ----------------------------------------------------
-
-        volume = None
-
-        try:
-            volume = float(fields[36])
-        except (ValueError, TypeError):
-            pass
-
-        # ----------------------------------------------------
-        # 成交额
+        # ------------------------------------------------
+        # 腾讯实时行情：
         #
-        # 腾讯 fields[37] 的单位是：
-        # 万元
+        # fields[37] = 成交额
+        # 单位：万元
         #
-        # 页面热力图使用元，
-        # 所以这里 × 10000
-        # ----------------------------------------------------
+        # 转换为元
+        # ------------------------------------------------
 
         amount = None
 
-        try:
+        if len(fields) > 37:
 
-            amount_wan = float(fields[37])
+            try:
+                amount_wan = float(fields[37])
 
-            if amount_wan >= 0:
-                amount = amount_wan * 10000
+                if amount_wan >= 0:
+                    amount = amount_wan * 10000
 
-        except (ValueError, TypeError):
-
-            amount = None
+            except (ValueError, TypeError):
+                amount = None
 
         return {
             "name": name,
@@ -325,7 +304,6 @@ def get_realtime(code):
             "prev_close": prev_close,
             "open": open_price,
             "change_pct": change_pct,
-            "volume": volume,
             "amount": amount,
         }
 
