@@ -28,7 +28,7 @@ BEIJING_TZ = timezone(timedelta(hours=8))
 
 def get_beijing_time():
     """
-    获取当前北京时间（UTC+8）
+    获取当前北京时间
     """
     return datetime.now(BEIJING_TZ)
 
@@ -61,7 +61,9 @@ def calculate_return(df, days):
     if previous == 0:
         return None
 
-    return pct((latest / previous - 1) * 100)
+    return pct(
+        (latest / previous - 1) * 100
+    )
 
 
 def calculate_current_drawdown(df):
@@ -80,7 +82,9 @@ def calculate_current_drawdown(df):
     if highest == 0:
         return None
 
-    return pct((latest / highest - 1) * 100)
+    return pct(
+        (latest / highest - 1) * 100
+    )
 
 
 def calculate_max_drawdown(df):
@@ -95,9 +99,13 @@ def calculate_max_drawdown(df):
 
     running_max = prices.cummax()
 
-    drawdown = (prices / running_max - 1) * 100
+    drawdown = (
+        prices / running_max - 1
+    ) * 100
 
-    return pct(drawdown.min())
+    return pct(
+        drawdown.min()
+    )
 
 
 def calculate_average_drawdown(df):
@@ -112,9 +120,13 @@ def calculate_average_drawdown(df):
 
     running_max = prices.cummax()
 
-    drawdown = (prices / running_max - 1) * 100
+    drawdown = (
+        prices / running_max - 1
+    ) * 100
 
-    return pct(drawdown.mean())
+    return pct(
+        drawdown.mean()
+    )
 
 
 def calculate_recent_high(df):
@@ -125,7 +137,10 @@ def calculate_recent_high(df):
     if df.empty:
         return None
 
-    return round(float(df["high"].max()), 4)
+    return round(
+        float(df["high"].max()),
+        4
+    )
 
 
 def calculate_recent_low(df):
@@ -136,7 +151,10 @@ def calculate_recent_low(df):
     if df.empty:
         return None
 
-    return round(float(df["low"].min()), 4)
+    return round(
+        float(df["low"].min()),
+        4
+    )
 
 
 # ============================================================
@@ -160,9 +178,13 @@ def process_etf(code):
     df = get_history(code)
 
     if df is None or df.empty:
-        raise RuntimeError(f"{code} 历史数据为空")
+        raise RuntimeError(
+            f"{code} 历史数据为空"
+        )
 
-    print(f"历史数据：{len(df)} 条")
+    print(
+        f"历史数据：{len(df)} 条"
+    )
 
     print(
         f"历史区间："
@@ -171,15 +193,16 @@ def process_etf(code):
         f"{df.iloc[-1]['date'].strftime('%Y-%m-%d')}"
     )
 
-    latest_close = float(df.iloc[-1]["close"])
+    latest_close = float(
+        df.iloc[-1]["close"]
+    )
 
     # --------------------------------------------------------
-    # 最新成交额
+    # 先从历史数据尝试获取成交额
     # --------------------------------------------------------
 
     latest_amount = None
 
-    # 如果历史数据中有 amount，就取最新交易日成交额
     if "amount" in df.columns:
 
         value = df.iloc[-1]["amount"]
@@ -187,14 +210,12 @@ def process_etf(code):
         if pd.notna(value):
 
             try:
-                latest_amount = float(value)
-            except (ValueError, TypeError):
-                latest_amount = None
 
-    if latest_amount is not None:
-        print(f"最新成交额：{latest_amount:,.2f}")
-    else:
-        print("最新成交额：暂无数据")
+                latest_amount = float(value)
+
+            except (ValueError, TypeError):
+
+                latest_amount = None
 
     # --------------------------------------------------------
     # 实时数据
@@ -204,7 +225,10 @@ def process_etf(code):
 
     if realtime:
 
-        name = realtime.get("name", "")
+        name = realtime.get(
+            "name",
+            ""
+        )
 
         latest_price = realtime.get(
             "price",
@@ -215,10 +239,49 @@ def process_etf(code):
             "change_pct"
         )
 
-        print(f"实时价格：{latest_price}")
+        # ----------------------------------------------------
+        # 优先使用实时成交额
+        # ----------------------------------------------------
+
+        realtime_amount = realtime.get(
+            "amount"
+        )
+
+        if realtime_amount is not None:
+
+            try:
+
+                latest_amount = float(
+                    realtime_amount
+                )
+
+            except (ValueError, TypeError):
+
+                pass
+
+        print(
+            f"实时价格：{latest_price}"
+        )
 
         if daily_change is not None:
-            print(f"今日涨跌：{daily_change:.2f}%")
+
+            print(
+                f"今日涨跌："
+                f"{daily_change:.2f}%"
+            )
+
+        if latest_amount is not None:
+
+            print(
+                f"成交额："
+                f"{latest_amount:,.2f} 元"
+            )
+
+        else:
+
+            print(
+                "成交额：暂无数据"
+            )
 
     else:
 
@@ -228,40 +291,54 @@ def process_etf(code):
 
         daily_change = None
 
-        print("实时行情失败，使用历史收盘价")
+        print(
+            "实时行情失败，"
+            "使用历史收盘价"
+        )
+
+        if latest_amount is not None:
+
+            print(
+                f"历史成交额："
+                f"{latest_amount:,.2f} 元"
+            )
 
     # --------------------------------------------------------
     # 指标计算
     # --------------------------------------------------------
 
-    current_drawdown = calculate_current_drawdown(
-        df
+    current_drawdown = (
+        calculate_current_drawdown(df)
     )
 
-    week_return = calculate_return(
-        df,
-        5
+    week_return = (
+        calculate_return(
+            df,
+            5
+        )
     )
 
-    month_return = calculate_return(
-        df,
-        22
+    month_return = (
+        calculate_return(
+            df,
+            22
+        )
     )
 
-    max_drawdown = calculate_max_drawdown(
-        df
+    max_drawdown = (
+        calculate_max_drawdown(df)
     )
 
-    average_drawdown = calculate_average_drawdown(
-        df
+    average_drawdown = (
+        calculate_average_drawdown(df)
     )
 
-    recent_high = calculate_recent_high(
-        df
+    recent_high = (
+        calculate_recent_high(df)
     )
 
-    recent_low = calculate_recent_low(
-        df
+    recent_low = (
+        calculate_recent_low(df)
     )
 
     # --------------------------------------------------------
@@ -269,6 +346,7 @@ def process_etf(code):
     # --------------------------------------------------------
 
     if not name:
+
         name = code
 
     # --------------------------------------------------------
@@ -286,6 +364,7 @@ def process_etf(code):
             4
         ),
 
+        # 最新成交额，单位：元
         "amount": latest_amount,
 
         "change_1d": daily_change,
@@ -294,15 +373,20 @@ def process_etf(code):
 
         "change_1m": month_return,
 
-        "current_drawdown": current_drawdown,
+        "current_drawdown":
+            current_drawdown,
 
-        "recent_high": recent_high,
+        "recent_high":
+            recent_high,
 
-        "recent_low": recent_low,
+        "recent_low":
+            recent_low,
 
-        "max_drawdown": max_drawdown,
+        "max_drawdown":
+            max_drawdown,
 
-        "average_drawdown": average_drawdown,
+        "average_drawdown":
+            average_drawdown,
 
         "history_start":
             df.iloc[0]["date"].strftime(
@@ -320,7 +404,6 @@ def process_etf(code):
     # --------------------------------------------------------
 
     print()
-
     print("计算结果：")
 
     print(
@@ -348,23 +431,28 @@ def process_etf(code):
     )
 
     print(
-        f"当前回撤：{result['current_drawdown']}"
+        f"当前回撤："
+        f"{result['current_drawdown']}"
     )
 
     print(
-        f"最高：{result['recent_high']}"
+        f"最高："
+        f"{result['recent_high']}"
     )
 
     print(
-        f"最低：{result['recent_low']}"
+        f"最低："
+        f"{result['recent_low']}"
     )
 
     print(
-        f"最大回撤：{result['max_drawdown']}"
+        f"最大回撤："
+        f"{result['max_drawdown']}"
     )
 
     print(
-        f"平均回撤：{result['average_drawdown']}"
+        f"平均回撤："
+        f"{result['average_drawdown']}"
     )
 
     return result
@@ -385,6 +473,7 @@ def load_watchlist():
         data = yaml.safe_load(f)
 
     if not data:
+
         return []
 
     codes = data.get(
@@ -417,9 +506,13 @@ def main():
 
     print("=" * 60)
 
-    print("ETF 数据更新程序")
+    print(
+        "ETF 数据更新程序"
+    )
 
-    print("当前数据源：Tencent Finance")
+    print(
+        "当前数据源：Tencent Finance"
+    )
 
     print("=" * 60)
 
@@ -464,7 +557,8 @@ def main():
             print()
 
             print(
-                f"❌ {code} 处理失败：{e}"
+                f"❌ {code} "
+                f"处理失败：{e}"
             )
 
             results.append({
@@ -508,10 +602,14 @@ def main():
     # 获取北京时间
     # --------------------------------------------------------
 
-    updated_at = get_beijing_time()
+    updated_at = (
+        get_beijing_time()
+    )
 
-    updated_at_text = updated_at.strftime(
-        "%Y-%m-%d %H:%M:%S"
+    updated_at_text = (
+        updated_at.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
     )
 
     # --------------------------------------------------------
@@ -581,22 +679,28 @@ def main():
 
     print("=" * 60)
 
-    print("更新完成")
-
     print(
-        f"成功：{success}/{len(codes)}"
+        "更新完成"
     )
 
     print(
-        f"失败：{failed}/{len(codes)}"
+        f"成功："
+        f"{success}/{len(codes)}"
     )
 
     print(
-        f"更新时间（北京时间）：{updated_at_text}"
+        f"失败："
+        f"{failed}/{len(codes)}"
     )
 
     print(
-        f"输出文件：{OUTPUT_FILE}"
+        f"更新时间（北京时间）："
+        f"{updated_at_text}"
+    )
+
+    print(
+        f"输出文件："
+        f"{OUTPUT_FILE}"
     )
 
     print("=" * 60)
@@ -607,5 +711,5 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
-    main()
 
+    main()
