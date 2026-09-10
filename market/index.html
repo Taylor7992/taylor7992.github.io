@@ -1,1001 +1,1837 @@
+```html
 ---
-
 layout: single
 title: "ETF 自选监控"
 permalink: /market/
--------------------
+---
 
 <style>
+
+/* ================================
+   ETF 监控页面
+   Finviz 风格深色布局
+   ================================ */
+
 .etf-page {
-  max-width: 1700px;
+  width: 100%;
+  max-width: 1800px;
   margin: 0 auto;
+  padding: 0 20px 40px;
+  box-sizing: border-box;
+  color: #e6e6e6;
 }
 
-/* 顶部 */
-.etf-header {
+/* 页面标题 */
+.etf-title {
+  margin-bottom: 6px;
+  color: #ffffff;
+}
+
+.etf-desc {
+  color: #999;
   margin-bottom: 18px;
 }
 
-.etf-header h1 {
-  margin-bottom: 6px;
-}
+/* ================================
+   状态栏
+   ================================ */
 
-.etf-header p {
-  margin: 0;
-  color: #888;
-  font-size: 14px;
-}
-
-.update-time {
-  margin-top: 8px;
-  color: #999;
-  font-size: 12px;
-}
-
-/* 周期按钮 */
-.period-tabs {
+.etf-status {
   display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
 
-.period-btn {
-  padding: 6px 16px;
-  border: 1px solid #ccc;
+  margin-bottom: 18px;
+  padding: 11px 15px;
+
+  background: #171717;
+  border: 1px solid #292929;
   border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-size: 14px;
 }
 
-.period-btn:hover {
-  background: rgba(128, 128, 128, 0.12);
+.etf-status-text {
+  font-size: 13px;
+  color: #bbb;
 }
 
-.period-btn.active {
-  background: #555;
-  border-color: #555;
-  color: #fff;
+.etf-update {
+  font-size: 12px;
+  color: #777;
 }
 
-/* 左右布局 */
-.market-content {
+/* ================================
+   主体：左热力图 + 右表格
+   ================================ */
+
+.market-layout {
   display: grid;
-  grid-template-columns: 1fr 1.25fr;
-  gap: 18px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(620px, 1.25fr);
+  gap: 14px;
+
+  align-items: stretch;
 }
 
-/* 热力图 */
-.heatmap-panel,
-.table-panel {
-  border: 1px solid rgba(128, 128, 128, 0.25);
-  border-radius: 8px;
-  padding: 14px;
+/* 两边都是深色面板 */
+
+.market-panel {
+  background: #111;
+  border: 1px solid #292929;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* ================================
+   面板标题
+   ================================ */
+
+.panel-header {
+  height: 52px;
+  padding: 0 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid #292929;
+  background: #151515;
 }
 
 .panel-title {
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 600;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #eee;
 }
 
-.panel-title span {
-  color: #888;
-  font-weight: normal;
-}
+/* ================================
+   周期按钮
+   ================================ */
 
-/* 热力图 */
-.heatmap {
+.heatmap-buttons {
   display: flex;
-  gap: 4px;
-  height: 620px;
+  gap: 5px;
 }
 
-.heat-column {
+.heatmap-btn {
+  border: 1px solid #383838;
+  background: #202020;
+  color: #aaa;
+
+  border-radius: 4px;
+  padding: 5px 12px;
+
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.heatmap-btn:hover {
+  background: #2b2b2b;
+  color: #fff;
+}
+
+.heatmap-btn.active {
+  background: #444;
+  color: #fff;
+  border-color: #555;
+}
+
+/* ================================
+   热力图
+   ================================ */
+
+.heatmap-box {
+  height: 680px;
+}
+
+.heatmap {
+  width: 100%;
+  height: calc(100% - 53px);
+
+  display: flex;
+  gap: 2px;
+
+  overflow: hidden;
+
+  background: #080808;
+}
+
+.heatmap-column {
+  height: 100%;
+
   display: flex;
   flex-direction: column;
-  gap: 4px;
+
+  gap: 2px;
+
   min-width: 0;
 }
 
-.heat-item {
+.heatmap-item {
   position: relative;
-  min-height: 2px;
-  overflow: hidden;
-  border-radius: 5px;
-  padding: 7px;
-  box-sizing: border-box;
+
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
   color: #fff;
+
+  overflow: hidden;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+
+  box-sizing: border-box;
+
+  padding: 5px;
+
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease;
 }
 
-.heat-item:hover {
-  transform: scale(1.015);
-  opacity: 0.9;
-  z-index: 2;
+.heatmap-item:hover {
+  filter: brightness(1.18);
+  transform: scale(1.01);
+  z-index: 5;
 }
 
-.heat-name {
+/* 热力图文字 */
+
+.heatmap-code {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.heatmap-name {
+  font-size: 11px;
+  margin-top: 3px;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.heat-code {
-  margin-top: 2px;
-  font-size: 11px;
-  opacity: 0.8;
-}
-
-.heat-change {
-  margin-top: 4px;
-  font-size: 15px;
+.heatmap-percent {
+  font-size: 12px;
   font-weight: 700;
+  margin-top: 4px;
 }
 
-/* 红涨绿跌 */
-.up-1 { background: #9e3b3b; }
-.up-2 { background: #b94343; }
-.up-3 { background: #cf4b4b; }
-.up-4 { background: #df5555; }
-.up-5 { background: #ef4444; }
+.heatmap-empty {
+  width: 100%;
+  height: 100%;
 
-.down-1 { background: #357a55; }
-.down-2 { background: #2f8a5b; }
-.down-3 { background: #299963; }
-.down-4 { background: #25a969; }
-.down-5 { background: #20b875; }
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-.neutral { background: #777; }
+  color: #777;
+  background: #111;
+  font-size: 13px;
+}
 
-/* 数据表 */
+/* ================================
+   右侧表格
+   ================================ */
+
 .table-panel {
-  padding: 0;
-  overflow: hidden;
-}
-
-.table-title {
-  padding: 14px 14px 10px;
-  font-size: 14px;
-  font-weight: 600;
+  min-width: 0;
 }
 
 .table-wrap {
-  max-height: 620px;
-  overflow: auto;
+  height: 627px;
+
+  overflow-x: auto;
+  overflow-y: auto;
+
+  -webkit-overflow-scrolling: touch;
 }
+
+/* 滚动条 */
+
+.table-wrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-wrap::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* 表格 */
 
 .etf-table {
   width: 100%;
-  min-width: 1000px;
+  min-width: 1050px;
+
   border-collapse: collapse;
+
+  margin: 0;
+
   font-size: 13px;
+
+  color: #ddd;
 }
 
 .etf-table th {
   position: sticky;
   top: 0;
-  background: #f7f7f7;
-  color: #666;
-  padding: 9px 8px;
-  border-bottom: 1px solid #ddd;
+  z-index: 3;
+
+  background: #1b1b1b;
+
+  font-weight: 700;
+  color: #aaa;
+
   white-space: nowrap;
-  cursor: pointer;
-  z-index: 2;
+
+  padding: 10px 9px;
+
+  border-bottom: 1px solid #333;
 }
 
 .etf-table td {
-  padding: 8px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.16);
+  padding: 9px;
+
+  border-bottom: 1px solid #202020;
+
   white-space: nowrap;
+
+  text-align: center;
 }
 
 .etf-table tbody tr:hover {
-  background: rgba(128, 128, 128, 0.08);
+  background: #1c1c1c;
 }
 
-/* 暗色主题 */
-[data-theme="dark"] .etf-table th {
-  background: #242424;
-  color: #aaa;
+/* 第一列当前回撤 */
+
+.etf-table th:first-child,
+.etf-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+
+  background: #151515;
 }
 
-[data-theme="dark"] .period-btn {
-  border-color: #555;
+.etf-table th:first-child {
+  z-index: 5;
 }
 
-[data-theme="dark"] .period-btn.active {
-  background: #666;
-  border-color: #666;
+/* 排序 */
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
 }
 
-/* 涨跌颜色 */
-.text-up {
-  color: #e34b4b;
-  font-weight: 600;
+.sortable:hover {
+  background: #292929;
+  color: #fff;
 }
 
-.text-down {
-  color: #20a765;
-  font-weight: 600;
-}
-
-.text-neutral {
+.sort-indicator {
+  margin-left: 4px;
+  font-size: 10px;
   color: #888;
 }
 
-.sort-arrow {
-  margin-left: 3px;
-  color: #999;
+/* ================================
+   涨跌颜色
+   ================================ */
+
+.up {
+  color: #ff4d4f;
+  font-weight: 600;
 }
 
-/* 小屏幕 */
+.down {
+  color: #20c77a;
+  font-weight: 600;
+}
+
+.neutral {
+  color: #aaa;
+}
+
+.current-drawdown {
+  font-weight: 700;
+}
+
+/* ================================
+   加载 / 错误
+   ================================ */
+
+.loading {
+  padding: 30px !important;
+  text-align: center;
+  color: #777;
+}
+
+.error {
+  padding: 20px !important;
+  text-align: center;
+  color: #ff5c5c;
+  background: #1b1010;
+}
+
+/* ================================
+   小屏幕
+   ================================ */
+
 @media (max-width: 1100px) {
-  .market-content {
+
+  .market-layout {
     grid-template-columns: 1fr;
   }
+
+  .heatmap-box {
+    height: 500px;
+  }
+
+  .table-wrap {
+    height: 600px;
+  }
 }
 
-@media (max-width: 700px) {
+/* 手机 */
+
+@media (max-width: 768px) {
+
   .etf-page {
-    padding: 0 4px;
+    padding: 0 8px 30px;
   }
 
-  .heatmap {
-    height: 520px;
+  .market-layout {
+    display: block;
   }
 
-  .heat-name {
+  .market-panel {
+    margin-bottom: 12px;
+  }
+
+  .panel-header {
+    height: 48px;
+    padding: 0 10px;
+  }
+
+  .panel-title {
+    font-size: 15px;
+  }
+
+  .heatmap-buttons {
+    gap: 3px;
+  }
+
+  .heatmap-btn {
+    padding: 5px 9px;
     font-size: 11px;
   }
 
-  .heat-code {
-    display: none;
+  .heatmap-box {
+    height: 420px;
   }
 
-  .heat-change {
+  .table-wrap {
+    height: 500px;
+  }
+
+  .heatmap-code {
+    font-size: 11px;
+  }
+
+  .heatmap-name {
+    font-size: 9px;
+  }
+
+  .heatmap-percent {
+    font-size: 10px;
+  }
+
+  .etf-table {
     font-size: 12px;
   }
+
+  .etf-table th,
+  .etf-table td {
+    padding: 8px 7px;
+  }
 }
+
 </style>
+
 
 <div class="etf-page">
 
-  <div class="etf-header">
-    <h1>ETF 自选监控</h1>
-    <p>自选 ETF 行情、涨跌幅、成交额与历史回撤监控</p>
-    <div id="updateTime" class="update-time">数据加载中...</div>
+  <!-- 页面标题 -->
+
+  <h1 class="etf-title">ETF 自选监控</h1>
+
+  <div class="etf-desc">
+    自动更新 ETF 行情、收益率与回撤数据
   </div>
 
-  <!-- 周期切换 -->
 
-  <div class="period-tabs">
+  <!-- 数据状态 -->
 
-```
-<button class="period-btn active" data-period="change_1d">
-  今日
-</button>
+  <div class="etf-status">
 
-<button class="period-btn" data-period="change_1w">
-  1周
-</button>
+    <div class="etf-status-text" id="statusText">
+      正在加载 ETF 数据...
+    </div>
 
-<button class="period-btn" data-period="change_1m">
-  1月
-</button>
-```
+    <div class="etf-update" id="updateTime"></div>
 
   </div>
 
-  <div class="market-content">
 
-```
-<!-- 热力图 -->
-<div class="heatmap-panel">
+  <!-- 左热力图 + 右表格 -->
 
-  <div class="panel-title">
-    成交额热力图
-    <span>面积 = 成交额　颜色 = 涨跌幅</span>
-  </div>
+  <div class="market-layout">
 
-  <div id="heatmap" class="heatmap">
-    数据加载中...
+
+    <!-- ============================
+         左侧热力图
+         ============================ -->
+
+    <div class="market-panel heatmap-box">
+
+      <div class="panel-header">
+
+        <h2 class="panel-title">
+          ETF 热力图
+        </h2>
+
+        <div class="heatmap-buttons">
+
+          <button
+            class="heatmap-btn active"
+            data-period="change_1d">
+            今日
+          </button>
+
+          <button
+            class="heatmap-btn"
+            data-period="change_1w">
+            1周
+          </button>
+
+          <button
+            class="heatmap-btn"
+            data-period="change_1m">
+            1月
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div id="heatmap" class="heatmap">
+
+        <div class="heatmap-empty">
+          正在加载...
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ============================
+         右侧 ETF 数据表
+         ============================ -->
+
+    <div class="market-panel table-panel">
+
+      <div class="panel-header">
+
+        <h2 class="panel-title">
+          ETF 数据
+        </h2>
+
+      </div>
+
+
+      <div class="table-wrap">
+
+        <table class="etf-table">
+
+          <thead>
+
+            <tr>
+
+              <th>
+                当前回撤
+              </th>
+
+              <th>
+                ETF代码
+              </th>
+
+              <th>
+                ETF名称
+              </th>
+
+              <th>
+                最新价格
+              </th>
+
+
+              <th
+                class="sortable"
+                data-sort="change_1d">
+
+                今日涨跌幅
+
+                <span
+                  class="sort-indicator"
+                  data-indicator="change_1d">
+                </span>
+
+              </th>
+
+
+              <th
+                class="sortable"
+                data-sort="change_1w">
+
+                近1周涨跌幅
+
+                <span
+                  class="sort-indicator"
+                  data-indicator="change_1w">
+                </span>
+
+              </th>
+
+
+              <th
+                class="sortable"
+                data-sort="change_1m">
+
+                近1月涨跌幅
+
+                <span
+                  class="sort-indicator"
+                  data-indicator="change_1m">
+                </span>
+
+              </th>
+
+
+              <th>
+                最近最高点
+              </th>
+
+              <th>
+                最近最低点
+              </th>
+
+              <th>
+                最大回撤
+              </th>
+
+              <th>
+                平均回撤
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody id="etfTableBody">
+
+            <tr>
+
+              <td
+                colspan="11"
+                class="loading">
+
+                正在加载 ETF 数据...
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
   </div>
 
 </div>
 
-
-<!-- 数据表 -->
-<div class="table-panel">
-
-  <div class="table-title">
-    ETF 数据
-  </div>
-
-  <div class="table-wrap">
-
-    <table class="etf-table">
-
-      <thead>
-        <tr>
-
-          <th data-sort="current_drawdown">
-            当前回撤 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="code">
-            代码 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="name">
-            名称 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="price">
-            最新价格 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="change_1d">
-            今日涨跌幅 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="change_1w">
-            近1周涨跌幅 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="change_1m">
-            近1月涨跌幅 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="recent_high">
-            最近最高点 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="recent_low">
-            最近最低点 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="max_drawdown">
-            最大回撤 <span class="sort-arrow"></span>
-          </th>
-
-          <th data-sort="average_drawdown">
-            平均回撤 <span class="sort-arrow"></span>
-          </th>
-
-        </tr>
-      </thead>
-
-      <tbody id="etfTableBody">
-        <tr>
-          <td colspan="11" style="text-align:center;padding:30px;">
-            数据加载中...
-          </td>
-        </tr>
-      </tbody>
-
-    </table>
-
-  </div>
-
-</div>
-```
-
-  </div>
-
-</div>
 
 <script>
 
-const DATA_URL = "/assets/data/etf_data.json";
+(function () {
 
-let etfData = [];
+  /* ETF 数据地址 */
 
-let currentPeriod = "change_1d";
-
-let sortKey = "current_drawdown";
-let sortDesc = true;
+  const DATA_URL = "/assets/data/etf_data.json";
 
 
-/* ---------- 基础格式 ---------- */
+  /* 当前状态 */
 
-function number(value, digits = 2) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(digits) : "-";
-}
+  let originalData = [];
 
-function percent(value) {
-  const n = Number(value);
+  let currentSort = null;
 
-  if (!Number.isFinite(n)) {
-    return "-";
+  let sortDirection = "desc";
+
+  let heatmapPeriod = "change_1d";
+
+
+  /* ================================
+     数字格式
+     ================================ */
+
+  function formatPercent(value) {
+
+    if (
+      value === null ||
+      value === undefined ||
+      value === "" ||
+      isNaN(value)
+    ) {
+      return "--";
+    }
+
+    const num = Number(value);
+
+    if (num > 0) {
+      return "+" + num.toFixed(2) + "%";
+    }
+
+    return num.toFixed(2) + "%";
   }
 
-  return (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
-}
 
-function amount(value) {
-  const n = Number(value);
+  function formatNumber(value, decimals) {
 
-  if (!Number.isFinite(n) || n <= 0) {
-    return "暂无";
+    if (
+      value === null ||
+      value === undefined ||
+      value === "" ||
+      isNaN(value)
+    ) {
+      return "--";
+    }
+
+    return Number(value).toFixed(decimals);
   }
 
-  if (n >= 100000000) {
-    return (n / 100000000).toFixed(2) + " 亿";
+
+  /* 成交额显示 */
+
+  function formatAmount(value) {
+
+    if (
+      value === null ||
+      value === undefined ||
+      value === "" ||
+      isNaN(value)
+    ) {
+      return "--";
+    }
+
+    const num = Number(value);
+
+    if (num >= 100000000) {
+      return (num / 100000000).toFixed(2) + "亿";
+    }
+
+    if (num >= 10000) {
+      return (num / 10000).toFixed(2) + "万";
+    }
+
+    return num.toFixed(0);
   }
 
-  if (n >= 10000) {
-    return (n / 10000).toFixed(0) + " 万";
+
+  /* 防止名称中的特殊字符影响网页 */
+
+  function escapeHTML(value) {
+
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
-  return Math.round(n).toLocaleString();
-}
 
-function safe(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+  /* ================================
+     判断涨跌颜色
+     ================================ */
 
+  function getChangeClass(value) {
 
-/* ---------- 涨跌颜色 ---------- */
+    if (
+      value === null ||
+      value === undefined ||
+      isNaN(value)
+    ) {
+      return "neutral";
+    }
 
-function textClass(value) {
-  const n = Number(value);
+    if (Number(value) > 0) {
+      return "up";
+    }
 
-  if (n > 0) return "text-up";
-  if (n < 0) return "text-down";
+    if (Number(value) < 0) {
+      return "down";
+    }
 
-  return "text-neutral";
-}
-
-function heatClass(value) {
-  const n = Number(value);
-
-  if (!Number.isFinite(n) || n === 0) {
     return "neutral";
   }
 
-  if (n > 0) {
-    if (n >= 5) return "up-5";
-    if (n >= 3) return "up-4";
-    if (n >= 1.5) return "up-3";
-    if (n >= 0.5) return "up-2";
-    return "up-1";
-  }
 
-  if (n <= -5) return "down-5";
-  if (n <= -3) return "down-4";
-  if (n <= -1.5) return "down-3";
-  if (n <= -0.5) return "down-2";
+  /* ================================
+     热力图颜色
+     红 = 上涨
+     绿 = 下跌
+     ================================ */
 
-  return "down-1";
-}
+  function getHeatColor(value, maxAbs) {
 
+    const num = Number(value);
 
-/* ---------- 获取对应周期成交额 ---------- */
-
-function getAmount(item) {
-
-  if (currentPeriod === "change_1d") {
-    return Number(item.amount_1d) || Number(item.amount_today) || Number(item.amount) || 0;
-  }
-
-  if (currentPeriod === "change_1w") {
-    return Number(item.amount_1w) || Number(item.amount_week) || Number(item.amount) || 0;
-  }
-
-  if (currentPeriod === "change_1m") {
-    return Number(item.amount_1m) || Number(item.amount_month) || Number(item.amount) || 0;
-  }
-
-  return Number(item.amount) || 0;
-}
-
-
-/* ---------- 热力图 ---------- */
-
-function renderHeatmap() {
-
-  const box = document.getElementById("heatmap");
-
-  if (!etfData.length) {
-    box.innerHTML = "暂无数据";
-    return;
-  }
-
-
-  /*
-   按当前周期成交额排序
-  */
-  const data = etfData
-    .map(item => ({
-      item: item,
-      amount: getAmount(item)
-    }))
-    .sort((a, b) => b.amount - a.amount);
-
-
-  /*
-   桌面端 4 列，小屏幕减少列数
-  */
-  let columnCount = 4;
-
-  if (window.innerWidth < 700) {
-    columnCount = 2;
-  } else if (window.innerWidth < 1100) {
-    columnCount = 3;
-  }
-
-
-  const columns = [];
-
-  for (let i = 0; i < columnCount; i++) {
-    columns.push({
-      items: [],
-      total: 0
-    });
-  }
-
-
-  /*
-   尽量让每一列成交额接近
-  */
-  data.forEach(entry => {
-
-    let target = columns[0];
-
-    for (const column of columns) {
-      if (column.total < target.total) {
-        target = column;
-      }
+    if (!isFinite(num) || num === 0) {
+      return "rgb(90,90,90)";
     }
 
-    target.items.push(entry);
-    target.total += entry.amount;
-
-  });
-
-
-  const totalAmount = data.reduce(
-    (sum, item) => sum + item.amount,
-    0
-  );
+    const ratio = Math.min(
+      Math.abs(num) / Math.max(maxAbs, 1),
+      1
+    );
 
 
-  box.innerHTML = "";
+    /* 上涨：深红 → 亮红 */
+
+    if (num > 0) {
+
+      const r = 120 + Math.round(120 * ratio);
+
+      const g = 45 - Math.round(25 * ratio);
+
+      const b = 45 - Math.round(25 * ratio);
+
+      return "rgb(" + r + "," + g + "," + b + ")";
+    }
 
 
-  columns.forEach(column => {
+    /* 下跌：深绿 → 亮绿 */
 
-    if (!column.items.length) {
+    const r = 35 - Math.round(15 * ratio);
+
+    const g = 120 + Math.round(100 * ratio);
+
+    const b = 65 - Math.round(25 * ratio);
+
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
+
+  /* 获取当前热力图周期 */
+
+  function getHeatmapValue(item) {
+
+    const value = Number(
+      item[heatmapPeriod]
+    );
+
+    return isFinite(value) ? value : 0;
+  }
+
+
+  /* ================================
+     绘制热力图
+     面积 = 成交额
+     颜色 = 涨跌幅
+     ================================ */
+
+  function renderHeatmap(data) {
+
+    const heatmap =
+      document.getElementById("heatmap");
+
+
+    if (!data || data.length === 0) {
+
+      heatmap.innerHTML =
+        '<div class="heatmap-empty">暂无数据</div>';
+
       return;
     }
 
 
-    const columnElement =
-      document.createElement("div");
+    const items = data
 
-    columnElement.className =
-      "heat-column";
+      .filter(function (item) {
 
+        return item && item.code;
 
-    /*
-     每列宽度也根据成交额决定
-    */
-    const columnWidth =
-      totalAmount > 0
-        ? column.total / totalAmount * 100
-        : 100 / columnCount;
+      })
 
-    columnElement.style.width =
-      columnWidth + "%";
+      .map(function (item) {
+
+        const amount =
+          Number(item.amount);
 
 
-    column.items.forEach(entry => {
+        return {
 
-      const item = entry.item;
+          data: item,
 
-      const tile =
+          /* 有成交额就使用成交额 */
+
+          amount:
+            isFinite(amount) && amount > 0
+              ? amount
+              : 1,
+
+          value:
+            getHeatmapValue(item)
+
+        };
+
+      });
+
+
+    if (items.length === 0) {
+
+      heatmap.innerHTML =
+        '<div class="heatmap-empty">暂无数据</div>';
+
+      return;
+    }
+
+
+    /* 找到最大涨跌幅 */
+
+    const maxAbs =
+      Math.max.apply(
+        null,
+        items.map(function (item) {
+
+          return Math.abs(item.value);
+
+        })
+      );
+
+
+    /* 成交额最大的 ETF 放前面 */
+
+    items.sort(function (a, b) {
+
+      return b.amount - a.amount;
+
+    });
+
+
+    /* 电脑 5 列，手机 3 列 */
+
+    const columnCount =
+      window.innerWidth <= 768
+        ? 3
+        : 5;
+
+
+    const columns = [];
+
+
+    for (
+      let i = 0;
+      i < columnCount;
+      i++
+    ) {
+
+      columns.push({
+
+        items: [],
+
+        total: 0
+
+      });
+
+    }
+
+
+    /* 尽量平均分配成交额 */
+
+    items.forEach(function (item) {
+
+      let target =
+        columns[0];
+
+
+      columns.forEach(function (column) {
+
+        if (
+          column.total <
+          target.total
+        ) {
+
+          target = column;
+
+        }
+
+      });
+
+
+      target.items.push(item);
+
+      target.total += item.amount;
+
+    });
+
+
+    const totalAmount =
+      columns.reduce(
+        function (sum, column) {
+
+          return sum + column.total;
+
+        },
+        0
+      );
+
+
+    heatmap.innerHTML = "";
+
+
+    /* 创建热力图 */
+
+    columns.forEach(function (column) {
+
+      if (
+        column.items.length === 0
+      ) {
+
+        return;
+
+      }
+
+
+      const columnDiv =
         document.createElement("div");
 
-      tile.className =
-        "heat-item " +
-        heatClass(item[currentPeriod]);
+      columnDiv.className =
+        "heatmap-column";
 
 
-      /*
-       方块高度 = ETF成交额 / 当前列成交额
-      */
-      const height =
-        column.total > 0
-          ? entry.amount / column.total * 100
-          : 0;
+      const width =
+        totalAmount > 0
 
-      tile.style.height =
-        height + "%";
+          ? (
+              column.total /
+              totalAmount *
+              100
+            )
 
+          : (
+              100 /
+              columns.length
+            );
 
-      tile.innerHTML = `
-        <div class="heat-name">
-          ${safe(item.name || item.code)}
-        </div>
 
-        <div class="heat-code">
-          ${safe(item.code)}
-        </div>
+      columnDiv.style.flex =
+        "0 0 " + width + "%";
 
-        <div class="heat-change">
-          ${percent(item[currentPeriod])}
-        </div>
-      `;
 
+      column.items.forEach(
+        function (item) {
 
-      /*
-       鼠标提示显示当前周期成交额
-      */
-      tile.title =
-        `${item.name || item.code}
-代码：${item.code}
-${getPeriodName()}涨跌幅：${percent(item[currentPeriod])}
-${getPeriodName()}成交额：${amount(entry.amount)}`;
+          const div =
+            document.createElement("div");
 
 
-      columnElement.appendChild(tile);
+          div.className =
+            "heatmap-item";
 
-    });
 
+          /* ETF 成交额决定高度 */
 
-    box.appendChild(columnElement);
+          const height =
+            column.total > 0
 
-  });
+              ? (
+                  item.amount /
+                  column.total *
+                  100
+                )
 
-}
+              : (
+                  100 /
+                  column.items.length
+                );
 
 
-/* ---------- 周期名称 ---------- */
+          div.style.height =
+            height + "%";
 
-function getPeriodName() {
 
-  if (currentPeriod === "change_1w") {
-    return "近1周";
-  }
+          /* ETF 涨跌决定颜色 */
 
-  if (currentPeriod === "change_1m") {
-    return "近1月";
-  }
+          div.style.background =
+            getHeatColor(
+              item.value,
+              maxAbs
+            );
 
-  return "今日";
-}
 
+          const dataItem =
+            item.data;
 
-/* ---------- 数据表 ---------- */
 
-function renderTable() {
+          const code =
+            dataItem.code || "--";
 
-  const body =
-    document.getElementById("etfTableBody");
+          const name =
+            dataItem.name || "--";
 
-  const data = [...etfData];
+          const amount =
+            formatAmount(
+              dataItem.amount
+            );
 
+          const today =
+            formatPercent(
+              dataItem.change_1d
+            );
 
-  data.sort((a, b) => {
+          const week =
+            formatPercent(
+              dataItem.change_1w
+            );
 
-    let av = a[sortKey];
-    let bv = b[sortKey];
+          const month =
+            formatPercent(
+              dataItem.change_1m
+            );
 
+          const drawdown =
+            formatPercent(
+              dataItem.current_drawdown
+            );
 
-    if (sortKey === "code") {
 
-      av = String(av || "");
-      bv = String(bv || "");
+          /* 鼠标悬停详细信息 */
 
-      return sortDesc
-        ? bv.localeCompare(av)
-        : av.localeCompare(bv);
+          div.title =
 
-    }
+            name +
+            "（" +
+            code +
+            "）\n" +
 
+            "成交额：" +
+            amount +
+            "\n" +
 
-    if (sortKey === "name") {
+            "今日：" +
+            today +
+            "\n" +
 
-      av = String(av || "");
-      bv = String(bv || "");
+            "1周：" +
+            week +
+            "\n" +
 
-      return sortDesc
-        ? bv.localeCompare(av, "zh-CN")
-        : av.localeCompare(bv, "zh-CN");
+            "1月：" +
+            month +
+            "\n" +
 
-    }
+            "当前回撤：" +
+            drawdown;
 
 
-    av = Number(av);
-    bv = Number(bv);
+          div.innerHTML =
 
+            "<div>" +
 
-    if (!Number.isFinite(av)) return 1;
-    if (!Number.isFinite(bv)) return -1;
+              '<div class="heatmap-code">' +
+                escapeHTML(code) +
+              "</div>" +
 
+              '<div class="heatmap-name">' +
+                escapeHTML(name) +
+              "</div>" +
 
-    return sortDesc
-      ? bv - av
-      : av - bv;
+              '<div class="heatmap-percent">' +
+                escapeHTML(
+                  formatPercent(
+                    item.value
+                  )
+                ) +
+              "</div>" +
 
-  });
+            "</div>";
 
 
-  body.innerHTML = "";
+          columnDiv.appendChild(div);
 
-
-  data.forEach(item => {
-
-    const row =
-      document.createElement("tr");
-
-
-    row.innerHTML = `
-
-      <td class="${textClass(item.current_drawdown)}">
-        ${percent(item.current_drawdown)}
-      </td>
-
-      <td>
-        ${safe(item.code)}
-      </td>
-
-      <td>
-        ${safe(item.name || "-")}
-      </td>
-
-      <td>
-        ${number(item.price, 4)}
-      </td>
-
-      <td class="${textClass(item.change_1d)}">
-        ${percent(item.change_1d)}
-      </td>
-
-      <td class="${textClass(item.change_1w)}">
-        ${percent(item.change_1w)}
-      </td>
-
-      <td class="${textClass(item.change_1m)}">
-        ${percent(item.change_1m)}
-      </td>
-
-      <td>
-        ${number(item.recent_high, 4)}
-      </td>
-
-      <td>
-        ${number(item.recent_low, 4)}
-      </td>
-
-      <td class="${textClass(item.max_drawdown)}">
-        ${percent(item.max_drawdown)}
-      </td>
-
-      <td class="${textClass(item.average_drawdown)}">
-        ${percent(item.average_drawdown)}
-      </td>
-
-    `;
-
-
-    body.appendChild(row);
-
-  });
-
-
-  updateSortArrow();
-
-}
-
-
-/* ---------- 排序箭头 ---------- */
-
-function updateSortArrow() {
-
-  document
-    .querySelectorAll(".etf-table th")
-    .forEach(th => {
-
-      const arrow =
-        th.querySelector(".sort-arrow");
-
-      if (!arrow) return;
-
-
-      if (th.dataset.sort === sortKey) {
-
-        arrow.textContent =
-          sortDesc ? "↓" : "↑";
-
-      } else {
-
-        arrow.textContent = "";
-
-      }
-
-    });
-
-}
-
-
-/* ---------- 表头点击排序 ---------- */
-
-document
-  .querySelectorAll(".etf-table th[data-sort]")
-  .forEach(th => {
-
-    th.addEventListener("click", () => {
-
-      const key = th.dataset.sort;
-
-
-      if (key === sortKey) {
-
-        sortDesc = !sortDesc;
-
-      } else {
-
-        sortKey = key;
-        sortDesc = true;
-
-      }
-
-
-      renderTable();
-
-    });
-
-  });
-
-
-/* ---------- 周期切换 ---------- */
-
-document
-  .querySelectorAll(".period-btn")
-  .forEach(button => {
-
-    button.addEventListener("click", () => {
-
-      document
-        .querySelectorAll(".period-btn")
-        .forEach(btn => {
-          btn.classList.remove("active");
-        });
-
-
-      button.classList.add("active");
-
-      currentPeriod =
-        button.dataset.period;
-
-
-      renderHeatmap();
-
-    });
-
-  });
-
-
-/* ---------- 加载 JSON ---------- */
-
-async function loadData() {
-
-  try {
-
-    const response =
-      await fetch(
-        DATA_URL + "?t=" + Date.now(),
-        {
-          cache: "no-store"
         }
       );
 
 
-    if (!response.ok) {
-      throw new Error(
-        "HTTP " + response.status
-      );
-    }
-
-
-    const json =
-      await response.json();
-
-
-    if (Array.isArray(json)) {
-
-      etfData = json;
-
-    } else if (Array.isArray(json.data)) {
-
-      etfData = json.data;
-
-    } else {
-
-      throw new Error(
-        "JSON 数据格式错误"
+      heatmap.appendChild(
+        columnDiv
       );
 
-    }
-
-
-    if (!etfData.length) {
-      throw new Error("没有 ETF 数据");
-    }
-
-
-    document.getElementById(
-      "updateTime"
-    ).textContent =
-      json.updated_at
-        ? "数据更新时间：" + json.updated_at
-        : "数据更新时间：未知";
-
-
-    renderHeatmap();
-    renderTable();
-
-
-  } catch (error) {
-
-    console.error(error);
-
-
-    document.getElementById(
-      "heatmap"
-    ).innerHTML =
-      "数据加载失败：" + safe(error.message);
-
-
-    document.getElementById(
-      "etfTableBody"
-    ).innerHTML = `
-      <tr>
-        <td colspan="11"
-            style="text-align:center;padding:30px;">
-          数据加载失败：${safe(error.message)}
-        </td>
-      </tr>
-    `;
-
-
-    document.getElementById(
-      "updateTime"
-    ).textContent =
-      "数据加载失败";
+    });
 
   }
 
-}
+
+  /* ================================
+     表格排序
+     ================================ */
+
+  function sortData(data) {
+
+    const result =
+      data.slice();
 
 
-loadData();
+    if (!currentSort) {
+
+      return result;
+
+    }
 
 
-/* 窗口大小变化时重新计算热力图 */
+    result.sort(function (a, b) {
 
-let resizeTimer;
+      const aValue =
+        Number(
+          a[currentSort]
+        );
 
-window.addEventListener("resize", () => {
+      const bValue =
+        Number(
+          b[currentSort]
+        );
 
-  clearTimeout(resizeTimer);
 
-  resizeTimer = setTimeout(() => {
-    renderHeatmap();
-  }, 200);
+      if (isNaN(aValue)) {
+        return 1;
+      }
 
-});
+      if (isNaN(bValue)) {
+        return -1;
+      }
+
+
+      return sortDirection === "asc"
+
+        ? aValue - bValue
+
+        : bValue - aValue;
+
+    });
+
+
+    return result;
+
+  }
+
+
+  /* 更新排序箭头 */
+
+  function updateSortIndicators() {
+
+    document
+      .querySelectorAll(
+        ".sort-indicator"
+      )
+      .forEach(
+        function (el) {
+
+          el.textContent = "";
+
+        }
+      );
+
+
+    if (!currentSort) {
+
+      return;
+
+    }
+
+
+    const indicator =
+      document.querySelector(
+        '[data-indicator="' +
+        currentSort +
+        '"]'
+      );
+
+
+    if (indicator) {
+
+      indicator.textContent =
+        sortDirection === "asc"
+          ? "▲"
+          : "▼";
+
+    }
+
+  }
+
+
+  /* ================================
+     绘制数据表
+     ================================ */
+
+  function renderTable(data) {
+
+    const tbody =
+      document.getElementById(
+        "etfTableBody"
+      );
+
+
+    if (!data || data.length === 0) {
+
+      tbody.innerHTML =
+
+        '<tr>' +
+
+          '<td colspan="11" class="loading">' +
+
+            "暂无 ETF 数据" +
+
+          "</td>" +
+
+        "</tr>";
+
+      return;
+
+    }
+
+
+    const sortedData =
+      sortData(data);
+
+
+    tbody.innerHTML = "";
+
+
+    sortedData.forEach(
+      function (item) {
+
+        const tr =
+          document.createElement("tr");
+
+
+        const currentDrawdownClass =
+          getChangeClass(
+            item.current_drawdown
+          );
+
+
+        tr.innerHTML =
+
+          /* 当前回撤 */
+
+          '<td class="' +
+            currentDrawdownClass +
+            ' current-drawdown">' +
+
+            formatPercent(
+              item.current_drawdown
+            ) +
+
+          "</td>" +
+
+
+          /* ETF代码 */
+
+          "<td>" +
+
+            escapeHTML(
+              item.code || "--"
+            ) +
+
+          "</td>" +
+
+
+          /* ETF名称 */
+
+          "<td>" +
+
+            escapeHTML(
+              item.name || "--"
+            ) +
+
+          "</td>" +
+
+
+          /* 最新价格 */
+
+          "<td>" +
+
+            formatNumber(
+              item.price,
+              3
+            ) +
+
+          "</td>" +
+
+
+          /* 今日 */
+
+          '<td class="' +
+            getChangeClass(
+              item.change_1d
+            ) +
+          '">' +
+
+            formatPercent(
+              item.change_1d
+            ) +
+
+          "</td>" +
+
+
+          /* 1周 */
+
+          '<td class="' +
+            getChangeClass(
+              item.change_1w
+            ) +
+          '">' +
+
+            formatPercent(
+              item.change_1w
+            ) +
+
+          "</td>" +
+
+
+          /* 1月 */
+
+          '<td class="' +
+            getChangeClass(
+              item.change_1m
+            ) +
+          '">' +
+
+            formatPercent(
+              item.change_1m
+            ) +
+
+          "</td>" +
+
+
+          /* 最近最高点 */
+
+          "<td>" +
+
+            formatNumber(
+              item.recent_high,
+              3
+            ) +
+
+          "</td>" +
+
+
+          /* 最近最低点 */
+
+          "<td>" +
+
+            formatNumber(
+              item.recent_low,
+              3
+            ) +
+
+          "</td>" +
+
+
+          /* 最大回撤 */
+
+          '<td class="' +
+            getChangeClass(
+              item.max_drawdown
+            ) +
+          '">' +
+
+            formatPercent(
+              item.max_drawdown
+            ) +
+
+          "</td>" +
+
+
+          /* 平均回撤 */
+
+          '<td class="' +
+            getChangeClass(
+              item.average_drawdown
+            ) +
+          '">' +
+
+            formatPercent(
+              item.average_drawdown
+            ) +
+
+          "</td>";
+
+
+        tbody.appendChild(tr);
+
+      }
+    );
+
+
+    updateSortIndicators();
+
+  }
+
+
+  /* ================================
+     排序按钮
+     ================================ */
+
+  function bindSortEvents() {
+
+    document
+      .querySelectorAll(
+        ".sortable"
+      )
+      .forEach(
+        function (th) {
+
+          th.addEventListener(
+            "click",
+            function () {
+
+              const sortKey =
+                th.dataset.sort;
+
+
+              if (
+                currentSort ===
+                sortKey
+              ) {
+
+                sortDirection =
+                  sortDirection ===
+                  "desc"
+                    ? "asc"
+                    : "desc";
+
+              } else {
+
+                currentSort =
+                  sortKey;
+
+                sortDirection =
+                  "desc";
+
+              }
+
+
+              renderTable(
+                originalData
+              );
+
+            }
+          );
+
+        }
+      );
+
+  }
+
+
+  /* ================================
+     热力图周期按钮
+     ================================ */
+
+  function bindHeatmapEvents() {
+
+    document
+      .querySelectorAll(
+        ".heatmap-btn"
+      )
+      .forEach(
+        function (button) {
+
+          button.addEventListener(
+            "click",
+            function () {
+
+
+              document
+                .querySelectorAll(
+                  ".heatmap-btn"
+                )
+                .forEach(
+                  function (btn) {
+
+                    btn.classList.remove(
+                      "active"
+                    );
+
+                  }
+                );
+
+
+              button.classList.add(
+                "active"
+              );
+
+
+              heatmapPeriod =
+                button.dataset.period;
+
+
+              renderHeatmap(
+                originalData
+              );
+
+            }
+          );
+
+        }
+      );
+
+
+    /* 浏览器大小改变时重新排列 */
+
+    window.addEventListener(
+      "resize",
+      function () {
+
+        renderHeatmap(
+          originalData
+        );
+
+      }
+    );
+
+  }
+
+
+  /* ================================
+     加载 ETF 数据
+     ================================ */
+
+  async function loadETFData() {
+
+    const statusText =
+      document.getElementById(
+        "statusText"
+      );
+
+
+    const updateTime =
+      document.getElementById(
+        "updateTime"
+      );
+
+
+    try {
+
+      const response =
+        await fetch(
+
+          DATA_URL +
+          "?t=" +
+          Date.now(),
+
+          {
+            cache: "no-store"
+          }
+
+        );
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          "HTTP " +
+          response.status
+        );
+
+      }
+
+
+      const json =
+        await response.json();
+
+
+      let data = [];
+
+
+      if (
+        Array.isArray(json)
+      ) {
+
+        data = json;
+
+      } else if (
+        Array.isArray(
+          json.data
+        )
+      ) {
+
+        data = json.data;
+
+      }
+
+
+      if (
+        data.length === 0
+      ) {
+
+        throw new Error(
+          "数据为空"
+        );
+
+      }
+
+
+      originalData =
+        data;
+
+
+      /* 绘制页面 */
+
+      renderHeatmap(
+        originalData
+      );
+
+
+      renderTable(
+        originalData
+      );
+
+
+      /* 状态 */
+
+      statusText.textContent =
+        "数据加载成功，共 " +
+        originalData.length +
+        " 只 ETF";
+
+
+      if (
+        json.updated_at
+      ) {
+
+        updateTime.textContent =
+          "更新时间：" +
+          json.updated_at;
+
+      }
+
+    }
+
+
+    catch (error) {
+
+      console.error(error);
+
+
+      statusText.textContent =
+        "ETF 数据加载失败";
+
+
+      updateTime.textContent =
+        "";
+
+
+      document.getElementById(
+        "heatmap"
+      ).innerHTML =
+
+        '<div class="heatmap-empty">' +
+
+          "数据加载失败：" +
+
+          escapeHTML(
+            error.message
+          ) +
+
+        "</div>";
+
+
+      document.getElementById(
+        "etfTableBody"
+      ).innerHTML =
+
+        '<tr>' +
+
+          '<td colspan="11" class="error">' +
+
+            "数据加载失败：" +
+
+            escapeHTML(
+              error.message
+            ) +
+
+            "<br><br>" +
+
+            "请检查 assets/data/etf_data.json" +
+
+          "</td>" +
+
+        "</tr>";
+
+    }
+
+  }
+
+
+  /* ================================
+     页面启动
+     ================================ */
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      bindSortEvents();
+
+      bindHeatmapEvents();
+
+      loadETFData();
+
+    }
+  );
+
+})();
 
 </script>
+```
